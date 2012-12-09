@@ -47,11 +47,11 @@ public enum Message {
         }
     }
 
-    public void send(Player player, String... params) {
+    public void send(Player player, Object... params) {
         Messaging.send(player, string, params);
     }
 
-    public void broadcast(Location source, String... params) {
+    public void broadcast(Location source, Object... params) {
         SkillTotem.ref.broadcast(source, string, params);
     }
 }

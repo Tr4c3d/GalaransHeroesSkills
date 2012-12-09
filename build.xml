@@ -17,14 +17,14 @@
         </fileset>
     </path>
 
-    <target name="rebuild" depends="clean,build"/>
+    <target name="rebuild" depends="clean,build-all"/>
 
     <target name="clean">
         <delete dir="${dir.build}"/>
         <delete dir="${dir.dist}"/>
     </target>
 
-    <target name="build">
+    <target name="build-all">
         <mkdir dir="${dir.build}"/>
         <mkdir dir="${dir.dist}"/>
         <for param="skilldir" parallel="true">
@@ -32,14 +32,14 @@
                 <dirset dir="." includes="Skill*" casesensitive="true"/>
             </path>
             <sequential>
-                <antcall target="skill">
+                <antcall target="build-skill">
                     <param name="skilldir" value="@{skilldir}"/>
                 </antcall>
             </sequential>
         </for>
     </target>
 
-    <target name="skill">
+    <target name="build-skill">
         <basename property="skillname" file="${skilldir}"/>
         <mkdir dir="${dir.build}/${skillname}"/>
 
@@ -53,9 +53,9 @@
     </target>
 
 
-    <property name="skills.path" value="C:/Users/Galaran/Desktop/McServer/plugins/Heroes/skills"/>
-    <target name="deploy">
-        <copy todir="${skills.path}">
+    <property name="deploy.path" value="C:/Users/Galaran/Desktop/McServer/plugins/Heroes/skills"/>
+    <target name="deploy" depends="build-all">
+        <copy todir="${deploy.path}">
             <fileset dir="${dir.dist}"/>
         </copy>
     </target>
