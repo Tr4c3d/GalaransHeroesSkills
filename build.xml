@@ -1,0 +1,63 @@
+<project name="GalaransHeroesSkills" basedir="." default="rebuild">
+
+    <property name="dir.build" value="bin"/>
+    <property name="dir.dist" value="dist"/>
+    <property name="dir.lib" value="lib"/>
+    <property name="ant-contrib.jar" value="ant-contrib-1.0b3.jar"/>
+
+    <taskdef resource="net/sf/antcontrib/antlib.xml">
+        <classpath>
+            <pathelement location="${ant-contrib.jar}"/>
+        </classpath>
+    </taskdef>
+
+    <path id="compile-classpath">
+        <fileset dir="${dir.lib}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <target name="rebuild" depends="clean,build"/>
+
+    <target name="clean">
+        <delete dir="${dir.build}"/>
+        <delete dir="${dir.dist}"/>
+    </target>
+
+    <target name="build">
+        <mkdir dir="${dir.build}"/>
+        <mkdir dir="${dir.dist}"/>
+        <for param="skilldir" parallel="true">
+            <path>
+                <dirset dir="." includes="Skill*" casesensitive="true"/>
+            </path>
+            <sequential>
+                <antcall target="skill">
+                    <param name="skilldir" value="@{skilldir}"/>
+                </antcall>
+            </sequential>
+        </for>
+    </target>
+
+    <target name="skill">
+        <basename property="skillname" file="${skilldir}"/>
+        <mkdir dir="${dir.build}/${skillname}"/>
+
+        <javac srcdir="${skilldir}/src"
+               destdir="${dir.build}/${skillname}"
+               classpathref="compile-classpath"/>
+        <jar destfile="${dir.dist}/${skillname}.jar">
+            <fileset dir="${dir.build}/${skillname}"/>
+            <fileset dir="${skilldir}/src" excludes="**/*.java"/>
+        </jar>
+    </target>
+
+
+    <property name="skills.path" value="C:/Users/Galaran/Desktop/McServer/plugins/Heroes/skills"/>
+    <target name="deploy">
+        <copy todir="${skills.path}">
+            <fileset dir="${dir.dist}"/>
+        </copy>
+    </target>
+
+</project>
