@@ -45,7 +45,8 @@
 
         <javac srcdir="${skilldir}/src"
                destdir="${dir.build}/${skillname}"
-               classpathref="compile-classpath"/>
+               classpathref="compile-classpath"
+               includeantruntime="false"/>
         <jar destfile="${dir.dist}/${skillname}.jar">
             <fileset dir="${dir.build}/${skillname}"/>
             <fileset dir="${skilldir}/src" excludes="**/*.java"/>
