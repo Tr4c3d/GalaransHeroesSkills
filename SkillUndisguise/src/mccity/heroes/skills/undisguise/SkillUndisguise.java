@@ -53,7 +53,7 @@ public class SkillUndisguise extends ActiveSkill implements Listener {
         node.set("undisguise-on-any-attack", false);
         node.set("undisguise-on-pvp-attack", false);
 
-        node.set("undisguised-text", "You transformed back to normal form");
+        node.set("undisguised-text", "You have returned back to normal form");
         node.set("you-are-not-disguised-text", "You are already in normal form");
         node.set("undisguised-on-any-damage-text", "You've got damage and were undisguised!");
         node.set("undisguised-on-pvp-damage-text", "You were hit by another hero and undisguised!");
@@ -66,7 +66,7 @@ public class SkillUndisguise extends ActiveSkill implements Listener {
     @Override
     public void init() {
         super.init();
-        undisguisedText = SkillConfigManager.getRaw(this, "undisguised-text", "You transformed back to normal form");
+        undisguisedText = SkillConfigManager.getRaw(this, "undisguised-text", "You have returned back to normal form");
         youAreNotDisguisedText = SkillConfigManager.getRaw(this, "you-are-not-disguised-text", "You are already in normal form");
         undisguisedOnAnyDamageText = SkillConfigManager.getRaw(this, "undisguised-on-any-damage-text", "You've got damage and were undisguised!");
         undisguisedOnPvpDamageText = SkillConfigManager.getRaw(this, "undisguised-on-pvp-damage-text", "You were hit by another hero and undisguised!");

@@ -1,32 +1,40 @@
 package mccity.heroes.skills.transform;
 
+import com.google.common.collect.Maps;
 import com.herocraftonline.heroes.Heroes;
 import com.herocraftonline.heroes.api.SkillResult;
+import com.herocraftonline.heroes.api.events.SkillUseEvent;
 import com.herocraftonline.heroes.characters.Hero;
+import com.herocraftonline.heroes.characters.effects.EffectType;
+import com.herocraftonline.heroes.characters.effects.ExpirableEffect;
+import com.herocraftonline.heroes.characters.skill.Skill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.characters.skill.TargettedSkill;
 import com.herocraftonline.heroes.util.Messaging;
 import com.herocraftonline.heroes.util.Setting;
 import com.herocraftonline.heroes.util.Util;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.*;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import pgDev.bukkit.DisguiseCraft.DisguiseCraft;
 import pgDev.bukkit.DisguiseCraft.api.DisguiseCraftAPI;
+import pgDev.bukkit.DisguiseCraft.api.PlayerUndisguiseEvent;
 import pgDev.bukkit.DisguiseCraft.disguise.Disguise;
 import pgDev.bukkit.DisguiseCraft.disguise.DisguiseType;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
-public class SkillTransform extends TargettedSkill {
+public class SkillTransform extends TargettedSkill implements Listener {
 
     private final DisguiseCraftAPI dcApi;
 
-    private static final String PLAYER_CONFIG_KEY = "Player";
-    private static final Map<Class, DisguiseType> mobMap = new LinkedHashMap<Class, DisguiseType>();
+    private static final Map<Class<? extends LivingEntity>, DisguiseType> mobMap = Maps.newLinkedHashMap();
     static {
         mobMap.put(Zombie.class, DisguiseType.Zombie);
         mobMap.put(Skeleton.class, DisguiseType.Skeleton);
@@ -62,26 +70,72 @@ public class SkillTransform extends TargettedSkill {
         mobMap.put(Wither.class, DisguiseType.Wither);
     }
 
-    private String cannotTransformIntoText;
-    private String transformedIntoText;
+    private static final String LOW_LEVEL_TEXT_DEFAULT = "You must be at least level %level% to transform into %creature%";
+    private static final String SKILL_DISABLED_TEXT_DEFAULT = "Unable to use this skill in other form";
+    private static final String APPLY_TEXT_DEFAULT = "You have transformed into %creature%";
+    private static final String EXPIRE_TEXT_DEFAULT = "Transform expires";
+
+    private String lowLevelText;
+    private String skillDisabledText;
+    private String applyText;
+    private String expireText;
 
     public SkillTransform(Heroes plugin) {
         super(plugin, "Transform");
-        setDescription("You transform into your target.");
+        setDescription("You transform into your target for $1s.");
         setUsage("/skill transform");
         setArgumentRange(0, 1);
         setIdentifiers("skill transform");
         setTypes(SkillType.SILENCABLE, SkillType.ILLUSION);
 
+        Bukkit.getPluginManager().registerEvents(this, plugin);
         dcApi = DisguiseCraft.getAPI();
+
+    }
+
+    public ConfigurationSection getDefaultConfig() {
+        ConfigurationSection node = super.getDefaultConfig();
+        node.set(Setting.REAGENT.node(), Material.EYE_OF_ENDER.getId());
+        node.set(Setting.REAGENT_COST.node(), 0);
+        node.set(Setting.MAX_DISTANCE.node(), 10.0);
+        node.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.1);
+        node.set(Setting.DURATION.node(), 90000);
+        node.set(Setting.DURATION_INCREASE.node(), 2000);
+        node.set("disabled-skills", Collections.emptyList());
+
+        node.set("level-requirements." + DisguiseType.Player, 1);
+        for (DisguiseType mobType : mobMap.values()) {
+            node.set("level-requirements." + mobType.name(), 1);
+        }
+        // disable bosses by default
+        for (Class clazz : new Class[] { EnderDragon.class, Giant.class, Wither.class }) {
+            node.set("level-requirements." + mobMap.get(clazz).name(), 200);
+        }
+
+        node.set("low-level-text", LOW_LEVEL_TEXT_DEFAULT);
+        node.set("skill-disabled-text", SKILL_DISABLED_TEXT_DEFAULT);
+        node.set(Setting.APPLY_TEXT.node(), APPLY_TEXT_DEFAULT);
+        node.set(Setting.EXPIRE_TEXT.node(), EXPIRE_TEXT_DEFAULT);
+        return node;
+    }
+
+    @Override
+    public void init() {
+        lowLevelText = SkillConfigManager.getRaw(this, "low-level-text", LOW_LEVEL_TEXT_DEFAULT)
+                .replace("%level%", "$1").replace("%creature%", "$2");
+        skillDisabledText = SkillConfigManager.getRaw(this, "skill-disabled-text", SKILL_DISABLED_TEXT_DEFAULT);
+        applyText = SkillConfigManager.getRaw(this, Setting.APPLY_TEXT, APPLY_TEXT_DEFAULT)
+                .replace("%creature%", "$1");
+        expireText = SkillConfigManager.getRaw(this, Setting.EXPIRE_TEXT, EXPIRE_TEXT_DEFAULT);
     }
 
     @Override
     public String getDescription(Hero hero) {
         Player player = hero.getPlayer();
 
-        StringBuilder desc = new StringBuilder();
-        desc.append(getDescription());
+        StringBuilder desc = new StringBuilder(getDescription()
+                .replace("$1", Util.stringDouble(getDuration(hero) / 1000.0))
+        );
 
         if (dcApi.isDisguised(player)) {
             desc.append(ChatColor.DARK_PURPLE);
@@ -90,109 +144,183 @@ public class SkillTransform extends TargettedSkill {
             desc.append(ChatColor.YELLOW);
         }
 
-        desc.append(" Max Distance:");
-        desc.append(Util.formatDouble(getMaxDistanceFor(hero)));
+        desc.append(" MaxDistance:");
+        desc.append(Util.stringDouble(getMaxDistance(hero)));
 
-        double cdSec = getCooldownFor(hero) / 1000.0;
+        double cdSec = getCooldown(hero) / 1000.0;
         if (cdSec > 0) {
             desc.append(" CD:");
             desc.append(Util.formatDouble(cdSec));
             desc.append("s");
         }
 
-        int mana = SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 50, false);
+        int mana = getMana(hero);
         if (mana > 0) {
             desc.append(" M:");
             desc.append(mana);
         }
 
+        List<String> disabledSkills = getDisabledSkills(hero);
+        if (!disabledSkills.isEmpty()) {
+            desc.append(ChatColor.RED);
+            desc.append(" Disabled Skills: ");
+            Iterator<String> itr = disabledSkills.iterator();
+            while (itr.hasNext()) {
+                desc.append(itr.next());
+                if (itr.hasNext()) {
+                    desc.append(", ");
+                }
+            }
+            desc.append(ChatColor.YELLOW);
+        }
+
         return desc.toString();
     }
 
-    public boolean canTransformInto(Hero hero, String key) {
-        return SkillConfigManager.getUseSetting(hero, this, "target." + key, true);
+    public List<String> getDisabledSkills(Hero hero) {
+        return SkillConfigManager.getUseSetting(hero, this, "disabled-skills", new ArrayList<String>());
     }
 
-    public double getMaxDistanceFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE, 10.0, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE, 0.1, false) * hero.getSkillLevel(this);
+    public int getMinLevelForDisguise(Hero hero, DisguiseType disguiseType) {
+        return SkillConfigManager.getUseSetting(hero, this, "level-requirements." + disguiseType.name(), 1, true);
     }
 
-    public int getCooldownFor(Hero hero) {
-        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 100000, false) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 1000, false) * hero.getSkillLevel(this));
+    public int getMaxDistance(Hero hero) {
+        return (int) (SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE, 10.0, false) +
+                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE, 0.1, false) * hero.getSkillLevel(this));
     }
 
-    public ConfigurationSection getDefaultConfig() {
-        ConfigurationSection node = super.getDefaultConfig();
-        node.set(Setting.REAGENT.node(), Material.EYE_OF_ENDER.getId());
-        node.set(Setting.REAGENT_COST.node(), 1);
-        node.set(Setting.COOLDOWN.node(), 100000);
-        node.set(Setting.COOLDOWN_REDUCE.node(), 1000);
-        node.set(Setting.MANA.node(), 50);
-        node.set(Setting.MAX_DISTANCE.node(), 10.0);
-        node.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.1);
-
-        node.set("target." + PLAYER_CONFIG_KEY, true);
-        for (DisguiseType mobType : mobMap.values()) {
-            node.set("target." + mobType.name(), true);
-        }
-        node.set("cannot-transform-type", "You can not transform into $1");
-        node.set("transformed-into-type", "You have transformed into $1");
-        return node;
+    public int getDuration(Hero hero) {
+        return SkillConfigManager.getUseSetting(hero, this, Setting.DURATION, 90000, false) +
+                SkillConfigManager.getUseSetting(hero, this, Setting.DURATION_INCREASE, 2000, false) * hero.getSkillLevel(this);
     }
 
-    @Override
-    public void init() {
-        cannotTransformIntoText = SkillConfigManager.getRaw(this, "cannot-transform-type", "You can not transform into $1");
-        transformedIntoText = SkillConfigManager.getRaw(this, "transformed-into-type", "You have transformed into $1");
+    public int getCooldown(Hero hero) {
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
     }
 
-    @SuppressWarnings("unchecked")
+    public int getMana(Hero hero) {
+        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0.0, true) -
+                SkillConfigManager.getUseSetting(hero, this, Setting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
+    }
+
     public SkillResult use(Hero hero, LivingEntity target, String args[]) {
-        Player player = hero.getPlayer();
-        if (player == target) return SkillResult.INVALID_TARGET_NO_MSG;
+        if (target == hero.getPlayer()) return SkillResult.INVALID_TARGET_NO_MSG;
 
         if (target instanceof Player) {
-            if (canTransformInto(hero, PLAYER_CONFIG_KEY)) {
+            if (canTransformIntoWithNotify(hero, DisguiseType.Player)) {
                 Player targetPlayer = (Player) target;
                 Disguise dis = new Disguise(dcApi.newEntityID(), targetPlayer.getName(), DisguiseType.Player);
-                disguise(player, dis);
-            } else {
-                Messaging.send(player, cannotTransformIntoText, PLAYER_CONFIG_KEY);
+                hero.addEffect(new TransformEffect(this, dis, getDuration(hero), getDisabledSkills(hero)));
             }
         } else {
             DisguiseType disType = null;
-            for (Class curClass : mobMap.keySet()) {
+            for (Class<? extends LivingEntity> curClass : mobMap.keySet()) {
                 if (curClass.isAssignableFrom(target.getClass())) {
                     disType = mobMap.get(curClass);
                     break;
                 }
             }
             if (disType != null) {
-                if (canTransformInto(hero, disType.name())) {
-                    disguise(player, new Disguise(dcApi.newEntityID(), disType));
-                } else {
-                    Messaging.send(player, cannotTransformIntoText, disType.name());
+                if (canTransformIntoWithNotify(hero, disType)) {
+                    Disguise dis = new Disguise(dcApi.newEntityID(), disType);
+                    hero.addEffect(new TransformEffect(this, dis, getDuration(hero), getDisabledSkills(hero)));
                 }
             } else {
                 return SkillResult.INVALID_TARGET;
             }
         }
+
         broadcastExecuteText(hero, target);
         return SkillResult.NORMAL;
     }
 
-    public void disguise(Player player, Disguise disg) {
-        if (!dcApi.isDisguised(player)) {
-            dcApi.disguisePlayer(player, disg);
-        } else {
-            dcApi.changePlayerDisguise(player, disg);
-        }
-        Messaging.send(player, transformedIntoText, disguiseToString(disg));
-    }
-
     public String disguiseToString(Disguise disg) {
         return disg.type == DisguiseType.Player ? "Player " + disg.data.getFirst() : disg.type.name();
+    }
+
+    private boolean canTransformIntoWithNotify(Hero hero, DisguiseType disguiseType) {
+        int minLevel = getMinLevelForDisguise(hero, disguiseType);
+        if (hero.getSkillLevel(this) < minLevel) {
+            Messaging.send(hero.getPlayer(), lowLevelText, minLevel, disguiseType.name());
+            return false;
+        }
+        return true;
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onSkillUse(SkillUseEvent event) {
+        Hero hero = event.getHero();
+        if (!hero.hasEffect("Transform")) return;
+        TransformEffect transformEffect = (TransformEffect) hero.getEffect("Transform");
+
+        if (transformEffect.isSkillDisabled(event.getSkill())) {
+            event.setCancelled(true);
+            Messaging.send(hero.getPlayer(), skillDisabledText);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerUndisguise(PlayerUndisguiseEvent event) {
+        Hero hero = plugin.getCharacterManager().getHero(event.getPlayer());
+        if (!hero.hasEffect("Transform")) return;
+        TransformEffect transformEffect = (TransformEffect) hero.getEffect("Transform");
+
+        if (!transformEffect.isNowRemovingEffect()) {
+            hero.removeEffect(transformEffect);
+        }
+    }
+
+    public class TransformEffect extends ExpirableEffect {
+
+        private final Set<String> disabledSkillsLowCase = new HashSet<String>();
+        private final Disguise disguise;
+
+        private boolean nowRemovingEffect = false;
+
+        public TransformEffect(Skill skill, Disguise dis, long duration, Collection<String> disabledSkills) {
+            super(skill, "Transform", duration);
+            disguise = dis;
+            for (String disabledSkill : disabledSkills) {
+                disabledSkillsLowCase.add(disabledSkill.toLowerCase());
+            }
+
+            types.add(EffectType.FORM);
+            types.add(EffectType.BENEFICIAL);
+            types.add(EffectType.MAGIC);
+        }
+
+        public void applyToHero(Hero hero) {
+            super.applyToHero(hero);
+            Player player = hero.getPlayer();
+
+            if (dcApi.isDisguised(player)) {
+                dcApi.changePlayerDisguise(player, disguise);
+            } else {
+                dcApi.disguisePlayer(player, disguise);
+            }
+
+            Messaging.send(player, applyText, disguiseToString(disguise));
+        }
+
+        public void removeFromHero(Hero hero) {
+            super.removeFromHero(hero);
+            Player player = hero.getPlayer();
+
+            nowRemovingEffect = true; // prevent removing this effect again in the undisguise event handler
+            if (dcApi.isDisguised(player) && dcApi.getDisguise(player) == disguise) { // remove only effect's disguise
+                dcApi.undisguisePlayer(player);
+                Messaging.send(player, expireText);
+            }
+        }
+
+        public boolean isSkillDisabled(Skill skill) {
+            return disabledSkillsLowCase.contains(skill.getName().toLowerCase());
+        }
+
+        public boolean isNowRemovingEffect() {
+            return nowRemovingEffect;
+        }
     }
 }

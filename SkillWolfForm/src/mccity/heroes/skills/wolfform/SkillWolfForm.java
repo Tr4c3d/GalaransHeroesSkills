@@ -227,7 +227,7 @@ public class SkillWolfForm extends ActiveSkill implements Listener {
         if (!hero.hasEffect("WolfForm")) return;
         WolfFormEffect wolfFormEffect = (WolfFormEffect) hero.getEffect("WolfForm");
 
-        if (!wolfFormEffect.isRemovingEffect()) {
+        if (!wolfFormEffect.isNowRemovingEffect()) {
             hero.removeEffect(wolfFormEffect);
         }
     }
@@ -240,7 +240,7 @@ public class SkillWolfForm extends ActiveSkill implements Listener {
         private final boolean restrictSkillUse;
         private final Set<String> allowedSkills;
 
-        private boolean removingEffect = false;
+        private boolean nowRemovingEffect = false;
 
         public WolfFormEffect(Skill skill, long duration, double damageMultiplier, double damageMultiplierUnarmed,
                               int speedEffectLevel, boolean restrictSkillUse, Set<String> allowedSkills) {
@@ -272,20 +272,20 @@ public class SkillWolfForm extends ActiveSkill implements Listener {
             }
             player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, (int) (getDuration() / 50), speedEffectLevel - 1));
 
-            Messaging.send(player, SkillWolfForm.this.applyText);
+            Messaging.send(player, applyText);
         }
 
         public void removeFromHero(Hero hero) {
             super.removeFromHero(hero);
             Player player = hero.getPlayer();
 
-            removingEffect = true; // to prevent remove effect again (stackoverflow) in the undisguise event handler
+            nowRemovingEffect = true; // prevent removing this effect again in the undisguise event handler
             if (dcApi.isDisguised(player)) {
                 dcApi.undisguisePlayer(player);
             }
             player.removePotionEffect(PotionEffectType.SPEED);
 
-            Messaging.send(player, SkillWolfForm.this.expireText);
+            Messaging.send(player, expireText);
         }
 
         public double getDamageMultiplier() {
@@ -309,8 +309,8 @@ public class SkillWolfForm extends ActiveSkill implements Listener {
             return allowedSkills;
         }
 
-        public boolean isRemovingEffect() {
-            return removingEffect;
+        public boolean isNowRemovingEffect() {
+            return nowRemovingEffect;
         }
     }
 }
