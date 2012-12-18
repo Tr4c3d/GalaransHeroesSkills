@@ -6,108 +6,132 @@ import com.herocraftonline.heroes.characters.Hero;
 import com.herocraftonline.heroes.characters.skill.ActiveSkill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
-import com.herocraftonline.heroes.util.Messaging;
 import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.*;
-import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 public class SkillEnderBomb extends ActiveSkill {
 
-    private final Map<EnderPearl, EnderBomb> enderBombs = new HashMap<EnderPearl, EnderBomb>();
-    private final List<String> playersUsingSkill = new ArrayList<String>();
-
-    private String enderpearlDenyText;
+    private final Map<EnderPearl, Hero> enderbombMap = new WeakHashMap<EnderPearl, Hero>();
+    private final List<String> enderbombThrowers = new ArrayList<String>();
 
     public SkillEnderBomb(Heroes plugin) {
         super(plugin, "EnderBomb");
-        setDescription("Throw enderbomb");
+        setDescription("Throw enderbomb, which deals $1 + explosion damage. Explosion radius: $2.");
         setUsage("/skill enderbomb");
         setArgumentRange(0, 0);
         setIdentifiers("skill enderbomb");
-        setTypes(SkillType.DAMAGING, SkillType.FIRE);
+        setTypes(SkillType.DAMAGING, SkillType.HARMFUL, SkillType.FIRE);
 
-        Bukkit.getServer().getPluginManager().registerEvents(new SkillEnderBombListener(), plugin);
-    }
-
-    @Override
-    public void init() {
-        super.init();
-        enderpearlDenyText = SkillConfigManager.getRaw(this, "enderpearl-deny-text", "Not allowed to use enderpearl");
+        Bukkit.getPluginManager().registerEvents(new SkillEnderBombListener(), plugin);
     }
 
     public ConfigurationSection getDefaultConfig() {
-        ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.REAGENT.node(), 368);
-        defaultConfig.set(Setting.REAGENT_COST.node(), 1);
-        defaultConfig.set(Setting.HEALTH_COST.node(), 1);
-        defaultConfig.set("explosion-radius", 3.0);
-        defaultConfig.set("entity-damage-multiplier", 1.5);
-        defaultConfig.set("fire", false);
-        defaultConfig.set("prevent-wilderness-block-damage-and-fire", true);
-        defaultConfig.set("prevent-enderpearl-use", false);
-        defaultConfig.set("enderpearl-deny-text", "Not allowed to use enderpearl");
-        return defaultConfig;
+        ConfigurationSection node = super.getDefaultConfig();
+        node.set(Setting.REAGENT.node(), Material.ENDER_PEARL.getId());
+        node.set(Setting.REAGENT_COST.node(), 1);
+        node.set(Setting.DAMAGE.node(), 15.0);
+        node.set(Setting.DAMAGE_INCREASE.node(), 0.3);
+        node.set("explosion-radius", 3.0);
+        node.set("fire", false);
+        node.set("prevent-wilderness-block-damage-and-fire", true);
+        return node;
+    }
+
+    @Override
+    public String getDescription(Hero hero) {
+        StringBuilder descr = new StringBuilder(getDescription()
+                .replace("$1", String.valueOf(getDamage(hero)))
+                .replace("$2", Util.stringDouble(getExplosionRadius(hero)))
+        );
+
+        int cd = getCooldown(hero);
+        if (cd > 0) {
+            descr.append(" CD:");
+            descr.append(Util.stringDouble(cd / 1000.0));
+            descr.append("s");
+        }
+
+        int mana = getMana(hero);
+        if (mana > 0) {
+            descr.append(" M:");
+            descr.append(mana);
+        }
+
+        return descr.toString();
+    }
+
+    public int getDamage(Hero hero) {
+        return (int) (SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE, 15.0, false) +
+                SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE_INCREASE, 0.3, false) * hero.getSkillLevel(this));
+    }
+
+    public float getExplosionRadius(Hero hero) {
+        return (float) SkillConfigManager.getUseSetting(hero, this, "explosion-radius", 3.0, false);
+    }
+
+    public boolean isFire(Hero hero) {
+        return SkillConfigManager.getUseSetting(hero, this, "fire", false);
+    }
+
+    public boolean isNoGrief(Hero hero) {
+        return SkillConfigManager.getUseSetting(hero, this, "prevent-wilderness-block-damage-and-fire", true);
+    }
+
+    public int getCooldown(Hero hero) {
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
+    }
+
+    public int getMana(Hero hero) {
+        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0.0, true) -
+                SkillConfigManager.getUseSetting(hero, this, Setting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
     }
 
     public SkillResult use(Hero hero, String[] args) {
-        float explosionRadius = (float) SkillConfigManager.getUseSetting(hero, this, "explosion-radius", 3.0, false);
-        double entityDamageMultiplier = SkillConfigManager.getUseSetting(hero, this, "entity-damage-multiplier", 1.5, false);
-        boolean fire = SkillConfigManager.getUseSetting(hero, this, "fire", false);
-        boolean preventWildDamage = SkillConfigManager.getUseSetting(hero, this, "prevent-wilderness-block-damage-and-fire", true);
-
         Player player = hero.getPlayer();
+
         EnderPearl enderBomb = player.launchProjectile(EnderPearl.class);
-        enderBombs.put(enderBomb, new EnderBomb(hero, explosionRadius, fire, preventWildDamage, entityDamageMultiplier));
-        playersUsingSkill.add(player.getName());
+        enderbombMap.put(enderBomb, hero);
+        enderbombThrowers.add(player.getName());
 
         return SkillResult.NORMAL;
-    }
-
-    public String getDescription(Hero hero) {
-        return getDescription();
-    }
-
-    public boolean isPreventEnderPearlUseFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, "prevent-enderpearl-use", false);
     }
 
     public class SkillEnderBombListener implements Listener {
 
         /*
          * Ender bomb explosion detector
-         * onProjectileHit, onEntityExplode and onEntityDamage executes in the same tick and location +/- for enderbomb hit
+         * onProjectileHit, onEntityExplode and onEntityDamage calls in the same tick
+         * onEntityExplode and onEntityDamage are close to each other
          */
-        private long enderbombHitTick = 0;
-        private Location enderbombLandingLoc;
+        private long currentTick = 0;
+        private Location currentLandingLoc;
 
-        private double currentEntityDamageMultiplier = 1.0;
-        private boolean currentPreventWildBlockDamage = false;
+        private Hero currentThrower;
 
-        // enderpearl teleport executes before onProjectileHit, so handle this
+        // enderpearl teleport fires before onProjectileHit, check if player throwed enderbomb earlier
         @EventHandler(priority = EventPriority.HIGH)
         public void onPlayerTeleport(PlayerTeleportEvent event) {
             if (event.getCause() == PlayerTeleportEvent.TeleportCause.ENDER_PEARL) {
-                if (playersUsingSkill.contains(event.getPlayer().getName())) {
+                if (enderbombThrowers.contains(event.getPlayer().getName())) {
                     event.setCancelled(true);
                 }
             }
@@ -115,10 +139,10 @@ public class SkillEnderBomb extends ActiveSkill {
 
         // fires before onProjectileHit
         @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-        public void onPaintingBreakByEntity(HangingBreakByEntityEvent event) {
+        public void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
             if (event.getRemover() instanceof Player) {
                 Player remover = (Player) event.getRemover();
-                if (playersUsingSkill.contains(remover.getName())) {
+                if (enderbombThrowers.contains(remover.getName())) {
                     event.setCancelled(true);
                 }
             }
@@ -128,21 +152,17 @@ public class SkillEnderBomb extends ActiveSkill {
         public void onProjectileHit(ProjectileHitEvent event) {
             if (event.getEntityType() == EntityType.ENDER_PEARL) {
                 EnderPearl enderPearl = (EnderPearl) event.getEntity();
-                EnderBomb enderBomb = enderBombs.get(enderPearl);
+                Hero thrower = enderbombMap.remove(enderPearl);
 
-                if (enderBomb != null) {
-                    enderbombHitTick = getFirstWorldTime();
-                    enderbombLandingLoc = enderPearl.getLocation();
-                    currentEntityDamageMultiplier = enderBomb.getEntityDamageMultiplier();
-                    currentPreventWildBlockDamage = enderBomb.isPreventWildDamage();
+                if (thrower != null) {
+                    if (thrower.getPlayer().isOnline()) {
+                        currentThrower = thrower;
+                        currentTick = getFirstWorldTime();
+                        currentLandingLoc = enderPearl.getLocation();
 
-                    enderPearl.getWorld().createExplosion(enderPearl.getLocation(), enderBomb.getRadius(), enderBomb.isFire());
-
-                    enderBombs.remove(enderPearl);
-                    LivingEntity shooter = enderPearl.getShooter();
-                    if (shooter instanceof Player) {
-                        playersUsingSkill.remove(((Player) shooter).getName());
+                        enderPearl.getWorld().createExplosion(currentLandingLoc, getExplosionRadius(thrower), isFire(thrower));
                     }
+                    enderbombThrowers.remove(thrower.getPlayer().getName());
                     enderPearl.remove();
                 }
             }
@@ -150,11 +170,11 @@ public class SkillEnderBomb extends ActiveSkill {
 
         @EventHandler(priority = EventPriority.HIGHEST)
         public void onEntityExplode(EntityExplodeEvent event) {
-            if (getFirstWorldTime() == enderbombHitTick && event.getEntity() == null &&
-                    enderbombLandingLoc.distanceSquared(event.getLocation()) < 4) { // enderbomb explosion
+            if (event.getEntity() == null && getFirstWorldTime() == currentTick &&
+                    currentLandingLoc.distanceSquared(event.getLocation()) < 4) { // it's enderbomb!
 
                 // force explosion, even if protection plugin canceled it, but without block damage
-                if (currentPreventWildBlockDamage || event.isCancelled()) {
+                if (isNoGrief(currentThrower) || event.isCancelled()) {
                     event.blockList().clear();
                     event.setYield(0.0F);
                 }
@@ -164,39 +184,22 @@ public class SkillEnderBomb extends ActiveSkill {
 
         @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
         public void onEntityDamage(EntityDamageEvent event) {
-            if (getFirstWorldTime() == enderbombHitTick) {
-                Entity entity = event.getEntity();
-                if (event.getCause() == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION &&
-                        enderbombLandingLoc.distanceSquared(entity.getLocation()) < 625) { // enderbomb explosion
-                    if (currentEntityDamageMultiplier > 0 && entity instanceof LivingEntity) {
-                        LivingEntity living = (LivingEntity) entity;
-                        living.setNoDamageTicks(0);
-                        event.setDamage((int) Math.round(event.getDamage() * currentEntityDamageMultiplier));
-                    } else {
-                        event.setCancelled(true);
-                    }
+            if (event.getCause() != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION) return;
+            if (getFirstWorldTime() != currentTick) return;
+
+            Entity entity = event.getEntity();
+            if (currentLandingLoc.distanceSquared(entity.getLocation()) < 625) { // it's enderbomb!
+                if (entity instanceof LivingEntity) {
+                    LivingEntity target = (LivingEntity) entity;
+                    damageEntity(target, currentThrower.getPlayer(), getDamage(currentThrower), EntityDamageEvent.DamageCause.MAGIC);
+                } else { // dont damage items, etc
+                    event.setCancelled(true);
                 }
             }
         }
 
         private long getFirstWorldTime() {
             return Bukkit.getWorlds().get(0).getFullTime();
-        }
-
-        @EventHandler(priority = EventPriority.HIGH)
-        public void onPlayerInteract(PlayerInteractEvent event) {
-            Action action = event.getAction();
-            if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
-
-            Player player = event.getPlayer();
-            if (player.getGameMode() == GameMode.CREATIVE) return;
-            if (player.getItemInHand() == null || player.getItemInHand().getType() != Material.ENDER_PEARL) return;
-
-            Hero hero = plugin.getCharacterManager().getHero(player);
-            if (isPreventEnderPearlUseFor(hero)) {
-                event.setUseItemInHand(Event.Result.DENY);
-                Messaging.send(player, enderpearlDenyText);
-            }
         }
     }
 }
