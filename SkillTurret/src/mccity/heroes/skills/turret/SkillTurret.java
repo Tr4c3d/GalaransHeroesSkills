@@ -53,12 +53,12 @@ public class SkillTurret extends PassiveSkill {
         if (PluginsIntegration.instance.isEnabled()) {
             Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, PluginsIntegration.instance);
         }
-
+        
         turretManager = new TurretManager(this);
-        turretManager.loadData();
-
+        turretManager.loadAll();
+        
         Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, turretManager, 0, AI_PERIOD_TICKS);
-        Bukkit.getPluginManager().registerEvents(new SkillTurretListener(), plugin);
+        Bukkit.getPluginManager().registerEvents(new TurretListener(), plugin);
         Bukkit.getPluginManager().registerEvents(new ShutdownListener(), plugin);
     }
 
@@ -82,7 +82,6 @@ public class SkillTurret extends PassiveSkill {
 
         defaultConfig.set("power.attack-period-ticks", 20);
         defaultConfig.set("power.damage", 3);
-        defaultConfig.set("power.knockback", 0);
         defaultConfig.set("power.fire-arrow", false);
 
         defaultConfig.set("ammo.unlimited-ammo", false);
@@ -100,7 +99,7 @@ public class SkillTurret extends PassiveSkill {
         defaultConfig.set("integration.towny", true);
         defaultConfig.set("integration.factions", true);
 
-        Messages.fillDefault(defaultConfig);
+        Messages.fillDefaults(defaultConfig);
         return defaultConfig;
     }
 
@@ -184,13 +183,13 @@ public class SkillTurret extends PassiveSkill {
         return SkillConfigManager.getUseSetting(hero, this, "lifetime.protect-block", true);
     }
 
-    public class SkillTurretListener implements Listener {
+    public class TurretListener implements Listener {
 
         @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
         public void onBlockPlace(BlockPlaceEvent event) {
             Block block = event.getBlockPlaced();
             if (block.getType() != Material.DISPENSER) return;
-            Hero hero = plugin.getCharacterManager().getHero(event.getPlayer());
+            Hero hero = Utils.getHero(event.getPlayer());
             if (!hero.hasEffect("Turret")) return;
             if (!checkTurretPlatform(block.getLocation())) return;
 
@@ -270,11 +269,10 @@ public class SkillTurret extends PassiveSkill {
 
     private class ShutdownListener implements Listener {
 
-        @EventHandler(priority = EventPriority.NORMAL)
+        @EventHandler(priority = EventPriority.MONITOR)
         public void onPluginDisable(PluginDisableEvent event) {
             if (event.getPlugin().getName().equals("Heroes")) {
-                turretManager.saveData();
-                turretManager.despawnAllEyes();
+                turretManager.saveAll();
             }
         }
     }

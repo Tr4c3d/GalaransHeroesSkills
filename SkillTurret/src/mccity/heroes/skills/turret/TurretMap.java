@@ -1,6 +1,7 @@
 package mccity.heroes.skills.turret;
 
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 
 import java.util.*;
 
@@ -25,13 +26,17 @@ public class TurretMap {
     /**
      * @return immutable turret list for specified player or empty list if player has no turrets
      */
-    public List<Turret> getByPlayer(String playerName) {
-        List<Turret> playerTurrets = playerMap.get(playerName);
+    public List<Turret> getByPlayer(Player player) {
+        List<Turret> playerTurrets = playerMap.get(player.getName());
         return playerTurrets == null ? Collections.<Turret>emptyList() : Collections.unmodifiableList(playerTurrets);
     }
 
-    public void removeByPlayer(String playerName) {
-        List<Turret> removedTurrets = playerMap.remove(playerName);
+    public Turret getAt(Block baseBlock) {
+        return baseMap.get(baseBlock);
+    }
+
+    public void removeByPlayer(Player player) {
+        List<Turret> removedTurrets = playerMap.remove(player.getName());
         if (removedTurrets != null) {
             for (Turret removedTurret : removedTurrets) {
                 baseMap.remove(removedTurret.getBaseBlock());
@@ -41,6 +46,8 @@ public class TurretMap {
 
     public Turret removeByBase(Block baseBlock) {
         Turret removed = baseMap.remove(baseBlock);
+        
+        // remove from player map too
         if (removed != null) {
             List<Turret> playerTurrets = playerMap.get(removed.getOwnerName());
             if (playerTurrets != null) {
@@ -55,15 +62,11 @@ public class TurretMap {
         return removed;
     }
 
-    public Turret getAt(Block baseBlock) {
-        return baseMap.get(baseBlock);
-    }
-
-    public void setContent(List<Turret> newContent) {
+    public void setTurrets(List<Turret> newList) {
         baseMap.clear();
         playerMap.clear();
 
-        for (Turret curTurret : newContent) {
+        for (Turret curTurret : newList) {
             add(curTurret);
         }
     }
@@ -71,7 +74,7 @@ public class TurretMap {
     /**
      * @return immutable turret Collection
      */
-    public Collection<Turret> getContent() {
+    public Collection<Turret> getTurrets() {
         return Collections.unmodifiableCollection(baseMap.values());
     }
 

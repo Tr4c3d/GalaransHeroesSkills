@@ -3,6 +3,7 @@ package mccity.heroes.skills.enderbomb;
 import com.herocraftonline.heroes.Heroes;
 import com.herocraftonline.heroes.api.SkillResult;
 import com.herocraftonline.heroes.characters.Hero;
+import com.herocraftonline.heroes.characters.party.HeroParty;
 import com.herocraftonline.heroes.characters.skill.ActiveSkill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
@@ -22,10 +23,7 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 
 public class SkillEnderBomb extends ActiveSkill {
 
@@ -52,6 +50,7 @@ public class SkillEnderBomb extends ActiveSkill {
         node.set("explosion-radius", 3.0);
         node.set("fire", false);
         node.set("prevent-wilderness-block-damage-and-fire", true);
+        node.set("damage-friendly", false);
         return node;
     }
 
@@ -61,6 +60,10 @@ public class SkillEnderBomb extends ActiveSkill {
                 .replace("$1", String.valueOf(getDamage(hero)))
                 .replace("$2", Util.stringDouble(getExplosionRadius(hero)))
         );
+        
+        if (!isDamageFriendly(hero)) {
+            descr.append(" No friendly damage.");
+        }
 
         int cd = getCooldown(hero);
         if (cd > 0) {
@@ -93,6 +96,10 @@ public class SkillEnderBomb extends ActiveSkill {
 
     public boolean isNoGrief(Hero hero) {
         return SkillConfigManager.getUseSetting(hero, this, "prevent-wilderness-block-damage-and-fire", true);
+    }
+    
+    public boolean isDamageFriendly(Hero hero) {
+        return SkillConfigManager.getUseSetting(hero, this, "damage-friendly", false);
     }
 
     public int getCooldown(Hero hero) {
@@ -187,19 +194,52 @@ public class SkillEnderBomb extends ActiveSkill {
             if (event.getCause() != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION) return;
             if (getFirstWorldTime() != currentTick) return;
 
-            Entity entity = event.getEntity();
-            if (currentLandingLoc.distanceSquared(entity.getLocation()) < 625) { // it's enderbomb!
-                if (entity instanceof LivingEntity) {
-                    LivingEntity target = (LivingEntity) entity;
-                    damageEntity(target, currentThrower.getPlayer(), getDamage(currentThrower), EntityDamageEvent.DamageCause.MAGIC);
-                } else { // dont damage items, etc
-                    event.setCancelled(true);
-                }
+            if (!(event.getEntity() instanceof LivingEntity)) {
+                event.setCancelled(true); // do not damage items, etc
+                return;
+            }
+            LivingEntity target = (LivingEntity) event.getEntity();
+            
+            if (currentLandingLoc.distanceSquared(target.getLocation()) > 625) return; // not current enderbomb explosion
+            
+            if (isDamageFriendly(currentThrower) || !isFriendlyTo(target, currentThrower)) {
+                damageEntity(target, currentThrower.getPlayer(), getDamage(currentThrower), EntityDamageEvent.DamageCause.MAGIC);
+            } else {
+                event.setCancelled(true);
             }
         }
 
         private long getFirstWorldTime() {
             return Bukkit.getWorlds().get(0).getFullTime();
+        }
+
+        private boolean isFriendlyTo(LivingEntity target, Hero hero) {
+            Player player = hero.getPlayer();
+
+            // self
+            if (target.equals(player)) return true;
+            Set<String> friendlyNames = new HashSet<String>();
+            friendlyNames.add(player.getName());
+
+            // party
+            HeroParty party = hero.getParty();
+            if (party != null) {
+                if (target instanceof Player && party.isPartyMember((Player) target)) {
+                    return true;
+                } else {
+                    for (Hero partyMember : party.getMembers()) {
+                        friendlyNames.add(partyMember.getName());
+                    }
+                }
+            }
+
+            // pet
+            if (target instanceof Tameable) {
+                Tameable tameable = (Tameable) target;
+                if (tameable.isTamed() && friendlyNames.contains(tameable.getOwner().getName())) return true;
+            }
+
+            return false;
         }
     }
 }

@@ -6,17 +6,12 @@ import com.herocraftonline.heroes.characters.party.HeroParty;
 import com.herocraftonline.heroes.characters.skill.Skill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import mccity.heroes.skills.turret.integration.PluginsIntegration;
-import me.galaran.bukkitutils.GUtils;
-import me.galaran.bukkitutils.TempEntityManager;
-import net.minecraft.server.EntityArrow;
-import net.minecraft.server.MathHelper;
-import net.minecraft.server.WorldServer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Dispenser;
-import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.*;
+import org.bukkit.util.Vector;
 
 import java.util.*;
 
@@ -38,7 +33,6 @@ public class Turret {
     private long lastFindTick = 0;
 
     private final float damage;
-    private final int knockback;
     private final boolean fireArrow;
     private final int attackPeriodTicks;
     private long lastAttackTick = 0;
@@ -67,7 +61,6 @@ public class Turret {
 
         attackPeriodTicks = SkillConfigManager.getUseSetting(owner, skill, "power.attack-period-ticks", 20, true);
         this.damage = SkillConfigManager.getUseSetting(owner, skill, "power.damage", 3, true);
-        this.knockback = SkillConfigManager.getUseSetting(owner, skill, "power.knockback", 0, false);
         this.fireArrow = SkillConfigManager.getUseSetting(owner, skill, "power.fire-arrow", false);
         unlimitedAmmo = skill.isUnlimitedAmmoFor(owner);
         if (!unlimitedAmmo) {
@@ -93,14 +86,13 @@ public class Turret {
         ownerName = (String) turretData.get("owner-name");
         owner = null;
 
-        Location baseBlockLoc = GUtils.deserializeLocation((Map<?, ?>) turretData.get("base-block-loc"));
+        Location baseBlockLoc = Utils.deserializeLocation((Map<?, ?>) turretData.get("base-block-loc"));
         loc = baseBlockLoc.clone().add(0.5, Y_OFFSET_OVER_BASE_BLOCK, 0.5);
         world = baseBlockLoc.getWorld();
         baseBlock = world.getBlockAt(baseBlockLoc);
 
         attackPeriodTicks = ((Number) turretData.get("attack-period-ticks")).intValue();
         damage = ((Number) turretData.get("damage")).floatValue();
-        knockback = ((Number) turretData.get("knockback")).intValue();
         fireArrow = (Boolean) turretData.get("fire-arrow");
 
         unlimitedAmmo = (Boolean) turretData.get("unlimited-ammo");
@@ -131,11 +123,10 @@ public class Turret {
         Map<String, Object> dataEntry = new LinkedHashMap<String, Object>();
 
         dataEntry.put("owner-name", ownerName);
-        dataEntry.put("base-block-loc", GUtils.serializeLocation(baseBlock.getLocation()));
+        dataEntry.put("base-block-loc", Utils.serializeLocation(baseBlock.getLocation()));
 
         dataEntry.put("attack-period-ticks", attackPeriodTicks);
         dataEntry.put("damage", damage);
-        dataEntry.put("knockback", knockback);
         dataEntry.put("fire-arrow", fireArrow);
 
         dataEntry.put("unlimited-ammo", unlimitedAmmo);
@@ -160,7 +151,7 @@ public class Turret {
         return ownerName;
     }
 
-    public void onAiTick(TempEntityManager eyeManager) {
+    public void AITick() {
         long curTick = world.getFullTime();
 
         if (!unlimitedAmmo && ammo <= 0) {
@@ -175,7 +166,7 @@ public class Turret {
         }
         if (target == null && curTick >= lastFindTick + FIND_TARGET_EVERY_TICKS) {
             lastFindTick = curTick;
-            target = findNewTarget(eyeManager);
+            target = findNewTarget();
             if (target != null) {
                 startAttackCurrentTargetTick = curTick;
             }
@@ -207,9 +198,12 @@ public class Turret {
         return false;
     }
 
-    private LivingEntity findNewTarget(TempEntityManager eyeManager) {
-        Snowball testEntity = eyeManager.spawn(loc, Snowball.class, 10);
-        List<Entity> nearEntities = testEntity.getNearbyEntities(RADIUS, RADIUS, RADIUS);
+    private LivingEntity findNewTarget() {
+        Entity dummy = world.spawnEntity(loc, EntityType.ENDER_SIGNAL);
+        List<Entity> nearEntities = dummy.getNearbyEntities(RADIUS, RADIUS, RADIUS);
+        dummy.remove();
+        
+        world.playEffect(loc, Effect.ENDER_SIGNAL, 0);
 
         List<LivingEntity> possiblyTargets = new ArrayList<LivingEntity>();
         Set<String> friendlyPlayerNames = new HashSet<String>();
@@ -303,39 +297,30 @@ public class Turret {
     }
 
     private void shootTarget() {
-        WorldServer mcWorld = ((CraftWorld) loc.getWorld()).getHandle();
-
-        EntityArrow mcArrow = new EntityArrow(mcWorld);
-
-        mcArrow.shooter = null;
-        mcArrow.fromPlayer = 0;
-        ReflectionUtils.setArrowDamage(mcArrow, damage);
-        if (knockback > 0) {
-            mcArrow.a(knockback);
-        }
-        if (fireArrow) {
-            mcArrow.setOnFire(10);
-        }
-
-        // Based on Minecraft aim code (class EntityArrow)
-        mcArrow.locY = loc.getY();
-        double vecX = target.getLocation().getX() - loc.getX();
-        double vecY = target.getLocation().getY() + target.getEyeHeight() - 0.7 - mcArrow.locY;
-        double vecZ = target.getLocation().getZ() - loc.getZ();
-        double vecXZ = (double) MathHelper.sqrt(vecX * vecX + vecZ * vecZ);
+        Location tLoc = target.getLocation();
+        double vecX = tLoc.getX() - loc.getX();
+        double vecY = tLoc.getY() - loc.getY() + target.getEyeHeight() - 0.7;
+        double vecZ = tLoc.getZ() - loc.getZ();
+        double vecXZ = Math.sqrt(vecX * vecX + vecZ * vecZ);
         float yaw = (float) (Math.atan2(vecZ, vecX) * 180.0 / Math.PI) - 90f;
         float pitch = (float) (-(Math.atan2(vecY, vecXZ) * 180.0 / Math.PI));
-        double d4 = vecX / vecXZ;
-        double d5 = vecZ / vecXZ;
-        mcArrow.setPositionRotation(loc.getX() + d4, mcArrow.locY, loc.getZ() + d5, yaw, pitch);
-        mcArrow.height = 0f;
-
-        float f4 = (float) vecXZ * 0.2f;
-        mcArrow.shoot(vecX, vecY + f4, vecZ, 1.6f, 12f);
-
+        
+        Location arrowLoc = loc.clone();
+        // Bukkit bug, actually Yaw and Pitch swapped in spawnArrow()! v1.4.6-R0.1
+        arrowLoc.setPitch(yaw);
+        arrowLoc.setYaw(pitch);
+        
+        float distanceMod = (float) vecXZ * 0.2f;
+        Vector shootVec = new Vector(vecX, vecY + distanceMod, vecZ);
+        
+        Arrow arrow = world.spawnArrow(arrowLoc, shootVec, 1.6f, 12f);
         world.playEffect(loc, Effect.BOW_FIRE, 0);
 
-        mcWorld.addEntity(mcArrow);
+        ReflectionUtils.setArrowDamage(arrow, damage);
+        ReflectionUtils.setNotPickupable(arrow);
+        if (fireArrow) {
+            arrow.setFireTicks(200);
+        }
     }
 
     public void ownerJoined(Hero owner) {

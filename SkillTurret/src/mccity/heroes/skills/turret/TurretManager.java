@@ -3,13 +3,10 @@ package mccity.heroes.skills.turret;
 import com.herocraftonline.heroes.characters.Hero;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.util.Messaging;
-import me.galaran.bukkitutils.PlayersAroundChecker;
-import me.galaran.bukkitutils.TempEntityManager;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -20,7 +17,6 @@ public class TurretManager implements Runnable {
     private final SkillTurret skill;
     private final TurretStorage turretStorage;
 
-    private final TempEntityManager eyeManager;
     private final PlayersAroundChecker playerChecker;
 
     private static final String PERM_BYPASS_PROTECTION = "skillturret.bypassprotection";
@@ -29,10 +25,7 @@ public class TurretManager implements Runnable {
         this.skill = skill;
         turretStorage = new TurretStorage(skill.plugin.getDataFolder());
         turretMap = new TurretMap();
-        eyeManager = new TempEntityManager();
-
-        playerChecker = new PlayersAroundChecker(skill.plugin, 50);
-        playerChecker.startPolling(1);
+        playerChecker = new PlayersAroundChecker(skill.plugin, 47);
     }
 
     private boolean isReplaceOldestOnLimitFor(Hero hero) {
@@ -40,16 +33,16 @@ public class TurretManager implements Runnable {
     }
 
     public boolean canAddFor(Hero hero) {
-        List<Turret> playerTurrets = turretMap.getByPlayer(hero.getPlayer().getName());
+        List<Turret> playerTurrets = turretMap.getByPlayer(hero.getPlayer());
         return (isReplaceOldestOnLimitFor(hero) || playerTurrets.size() < skill.maxTurretsFor(hero));
     }
 
     public int getTotalTurrets(Hero hero) {
-        return turretMap.getByPlayer(hero.getPlayer().getName()).size();
+        return turretMap.getByPlayer(hero.getPlayer()).size();
     }
 
     public boolean addFor(Hero hero, Block base) {
-        List<Turret> playerTurrets = turretMap.getByPlayer(hero.getPlayer().getName());
+        List<Turret> playerTurrets = turretMap.getByPlayer(hero.getPlayer());
 
         boolean replace = false;
         if (playerTurrets.size() >= skill.maxTurretsFor(hero)) {
@@ -115,22 +108,19 @@ public class TurretManager implements Runnable {
     }
 
     public void removeAll(Hero hero) {
-        turretMap.removeByPlayer(hero.getPlayer().getName());
+        turretMap.removeByPlayer(hero.getPlayer());
     }
 
     @Override
     public void run() {
-        eyeManager.update();
         if (turretMap.size() == 0) return;
-
-        Collection<Turret> turrets = turretMap.getContent();
         List<Turret> forRemove = new ArrayList<Turret>();
-
-        for (Turret curTurret : turrets) {
+        
+        for (Turret curTurret : turretMap.getTurrets()) {
             if (curTurret.isAlive()) {
-                if (curTurret.isChunkLoaded() && playerChecker.isPlayerNearby(curTurret.getBaseBlock().getLocation(), 60)) {
+                if (curTurret.isChunkLoaded() && playerChecker.isAnyPlayerAround(curTurret.getBaseBlock().getLocation(), 60)) {
                     if (curTurret.checkBaseBlock()) {
-                        curTurret.onAiTick(eyeManager);
+                        curTurret.AITick();
                     } else {
                         forRemove.add(curTurret);
                     }
@@ -146,10 +136,20 @@ public class TurretManager implements Runnable {
         }
     }
 
+    public void loadAll() {
+        List<Turret> loaded = turretStorage.load();
+        Utils.log(loaded.size() + " turrets loaded", Level.INFO);
+        turretMap.setTurrets(loaded);
+    }
+
+    public void saveAll() {
+        turretStorage.save(turretMap.getTurrets());
+    }
+
     public void onPlayerJoin(Player player) {
-        List<Turret> playerTurrets = turretMap.getByPlayer(player.getName());
+        List<Turret> playerTurrets = turretMap.getByPlayer(player);
         if (!playerTurrets.isEmpty()) {
-            Hero owner = skill.plugin.getCharacterManager().getHero(player);
+            Hero owner = Utils.getHero(player);
             for (Turret playerTurret : playerTurrets) {
                 playerTurret.ownerJoined(owner);
             }
@@ -157,23 +157,9 @@ public class TurretManager implements Runnable {
     }
 
     public void onPlayerQuit(Player player) {
-        List<Turret> playerTurrets = turretMap.getByPlayer(player.getName());
+        List<Turret> playerTurrets = turretMap.getByPlayer(player);
         for (Turret playerTurret : playerTurrets) {
             playerTurret.ownerQuited();
         }
-    }
-
-    public void loadData() {
-        List<Turret> loaded = turretStorage.load();
-        Utils.log(loaded.size() + " turrets loaded", Level.INFO);
-        turretMap.setContent(loaded);
-    }
-
-    public void saveData() {
-        turretStorage.save(turretMap.getContent());
-    }
-
-    public void despawnAllEyes() {
-        eyeManager.despawnAll();
     }
 }

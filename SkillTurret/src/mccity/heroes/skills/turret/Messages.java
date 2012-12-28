@@ -16,7 +16,7 @@ public class Messages {
     public static String turretProtected;
 
     public static void load(SkillTurret skill) {
-        turretPlacedBy = SkillConfigManager.getRaw(skill, "turret-placed-by-text", "Turret placed by %player%").replace("%player%", "$1");
+        turretPlacedBy = SkillConfigManager.getRaw(skill, "turret-placed-by-text", "%player% build turret").replace("%player%", "$1");
         turretReplaced = SkillConfigManager.getRaw(skill, "turret-replaced-text", "Turret replaced");
         alreadyHaveMaxTurrets = SkillConfigManager.getRaw(skill, "max-turrets-text", "You already have max turrets");
         yourTurretDestroyed = SkillConfigManager.getRaw(skill, "your-turret-destroyed-text", "Your turret destroyed");
@@ -27,15 +27,15 @@ public class Messages {
         turretProtected = SkillConfigManager.getRaw(skill, "turret-protected-text", "This turret has protection for it's lifetime");
     }
 
-    public static void fillDefault(ConfigurationSection defaultConfig) {
-        defaultConfig.set("turret-placed-by-text", "Turret placed by %player%");
-        defaultConfig.set("turret-replaced-text", "Turret replaced");
-        defaultConfig.set("max-turrets-text", "You already have max turrets");
-        defaultConfig.set("your-turret-destroyed-text", "Your turret destroyed");
-        defaultConfig.set("your-turret-destroyed-by-text", "Your turret destroyed by %player%");
-        defaultConfig.set("you-destroy-other-player-turret-text", "You destroy %player%'s turret!");
-        defaultConfig.set("your-turret-lost-magic-power", "Your turret lost magic power");
-        defaultConfig.set("out-of-ammo-text", "Your turret is out of ammo");
-        defaultConfig.set("turret-protected-text", "This turret has protection for it's lifetime");
+    public static void fillDefaults(ConfigurationSection node) {
+        node.set("turret-placed-by-text", "%player% build turret");
+        node.set("turret-replaced-text", "Turret replaced");
+        node.set("max-turrets-text", "You already have max turrets");
+        node.set("your-turret-destroyed-text", "Your turret destroyed");
+        node.set("your-turret-destroyed-by-text", "Your turret destroyed by %player%");
+        node.set("you-destroy-other-player-turret-text", "You destroy %player%'s turret!");
+        node.set("your-turret-lost-magic-power", "Your turret lost magic power");
+        node.set("out-of-ammo-text", "Your turret is out of ammo");
+        node.set("turret-protected-text", "This turret has protection for it's lifetime");
     }
 }
