@@ -20,7 +20,10 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 public class SkillBoomerang extends TargettedSkill {
 
@@ -30,15 +33,16 @@ public class SkillBoomerang extends TargettedSkill {
         defaultItems.put("SHEARS", 1.0);
     }
 
-    private String unableToThrow;
+    private static final String UNABLE_TO_THROW_TEXT_DEFAULT = "You are not skilled to throw this item";
+    private String unableToThrowText;
 
     public SkillBoomerang(Heroes plugin) {
         super(plugin, "Boomerang");
-        setDescription("Throw boomerang to target, which strikes it for $1 damage and returns back. You have a $2% chance to catch your boomerang. Max distance: $3m.");
-        setUsage("/skill boomerang");
+        setDescription("Throw boomerang to target, which strikes it and returns back. You have a $1% chance to catch your boomerang. Max distance: $2.");
+        setUsage("/skill boomerang <target>");
         setArgumentRange(0, 1);
         setIdentifiers("skill boomerang");
-        setTypes(SkillType.PHYSICAL, SkillType.ITEM, SkillType.DAMAGING, SkillType.HARMFUL);
+        setTypes(SkillType.DAMAGING, SkillType.HARMFUL, SkillType.ITEM);
     }
 
     public ConfigurationSection getDefaultConfig() {
@@ -46,9 +50,9 @@ public class SkillBoomerang extends TargettedSkill {
         for (Map.Entry<String, Double> curItem : defaultItems.entrySet()) {
             defaultConfig.set("items." + curItem.getKey(), curItem.getValue());
         }
+        
         defaultConfig.set("catch-chance-base", 0.4);
         defaultConfig.set("catch-chance-per-level", 0.01);
-        defaultConfig.set("unable-to-throw-text", "You are not skilled to throw this item");
         defaultConfig.set(Setting.DAMAGE.node(), 10);
         defaultConfig.set(Setting.DAMAGE_INCREASE.node(), 0.1);
         defaultConfig.set(Setting.MAX_DISTANCE.node(), 20);
@@ -56,54 +60,69 @@ public class SkillBoomerang extends TargettedSkill {
         defaultConfig.set(Setting.COOLDOWN.node(), 10000);
         defaultConfig.set(Setting.MANA.node(), 5);
         defaultConfig.set("durability-decrease", 5);
+        
+        defaultConfig.set("unable-to-throw-text", UNABLE_TO_THROW_TEXT_DEFAULT);
         return defaultConfig;
     }
 
     @Override
     public void init() {
         super.init();
-        unableToThrow = SkillConfigManager.getRaw(this, "turrets-per-player", "You are not skilled to throw this item");
+        unableToThrowText = SkillConfigManager.getRaw(this, "unable-to-throw-text", UNABLE_TO_THROW_TEXT_DEFAULT);
     }
 
+    @Override
     public String getDescription(Hero hero) {
-        StringBuilder descrSb = new StringBuilder(getDescription());
+        StringBuilder descr = new StringBuilder(getDescription()
+                .replace("$1", Util.stringDouble(getCatchChanceFor(hero) * 100))
+                .replace("$2", Util.stringDouble(getMaxDistanceFor(hero)))
+        );
 
-        double cdSec = SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 15000, false) / 1000.0;
-        if (cdSec > 0) {
-            descrSb.append(" CD:");
-            descrSb.append(Util.formatDouble(cdSec));
-            descrSb.append("s");
+        int cd = getCooldown(hero);
+        if (cd > 0) {
+            descr.append(" CD:");
+            descr.append(Util.stringDouble(cd / 1000.0));
+            descr.append("s");
         }
 
-        int mana = SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 20, false);
+        int mana = getMana(hero);
         if (mana > 0) {
-            descrSb.append(" M:");
-            descrSb.append(mana);
+            descr.append(" M:");
+            descr.append(mana);
         }
-        descrSb.append(" Items: " + ChatColor.DARK_PURPLE);
+        
+        descr.append(ChatColor.GREEN);
+        descr.append(" Throwable items and damage: ");
         Iterator<String> itr = getAllowedItemsFor(hero).iterator();
         while (itr.hasNext()) {
-            descrSb.append(itr.next().replace('_', ' ').trim().toLowerCase());
+            String matName = itr.next();
+            descr.append(ChatColor.DARK_PURPLE);
+            descr.append(matName.replace('_', ' ').toLowerCase());
+            descr.append(": ");
+            descr.append(getDamage(hero, matName));
+            
             if (itr.hasNext()) {
-                descrSb.append(", ");
+                descr.append(ChatColor.GRAY);
+                descr.append(", ");
             }
         }
 
-        String descr = descrSb.toString();
-        descr = descr.replace("$1", Integer.toString(getDamageFor(hero)));
-        descr = descr.replace("$2", Util.stringDouble(getCatchChanceFor(hero) * 100));
-        descr = descr.replace("$3", Util.stringDouble(getMaxDistanceFor(hero)));
-        return descr;
+        return descr.toString();
+    }
+
+    public int getCooldown(Hero hero) {
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
+    }
+
+    public int getMana(Hero hero) {
+        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0.0, true) -
+                SkillConfigManager.getUseSetting(hero, this, Setting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
     }
 
     private double getMaxDistanceFor(Hero hero) {
         return SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE, 20, false) +
                 SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE, 0.2, false) * hero.getSkillLevel(this);
-    }
-
-    private int getDamageFor(Hero hero) {
-        return (int) (SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE, 10, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE_INCREASE, 0.1, false) * hero.getSkillLevel(this));
     }
 
     private double getCatchChanceFor(Hero hero) {
@@ -115,12 +134,25 @@ public class SkillBoomerang extends TargettedSkill {
         return SkillConfigManager.getUseSettingKeys(hero, this, "items");
     }
 
+    private double getDamageBase(Hero hero) {
+        return SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE, 10, false) +
+                SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE_INCREASE, 0.1, false) * hero.getSkillLevel(this);
+    }
+    
+    private int getDamage(Hero hero, String matName) {
+        return (int) (getDamageBase(hero) * SkillConfigManager.getUseSetting(hero, this, "items." + matName, 0.5, false));
+    }
+    
+    private int getDurabilityCost(Hero hero) {
+        return SkillConfigManager.getUseSetting(hero, this, "durability-decrease", 5, true);
+    }
+
     @Override
     public SkillResult use(Hero hero, LivingEntity target, String[] args) {
         Player player = hero.getPlayer();
         ItemStack handStack = player.getItemInHand();
         if (handStack == null || !getAllowedItemsFor(hero).contains(handStack.getType().name())) {
-            Messaging.send(player, unableToThrow);
+            Messaging.send(player, unableToThrowText);
             return SkillResult.FAIL;
         }
 
@@ -149,8 +181,7 @@ public class SkillBoomerang extends TargettedSkill {
         @Override
         public void run() {
             if (!target.isDead()) {
-                double damageMult = SkillConfigManager.getUseSetting(hero, SkillBoomerang.this, "items." + item.getType().name(), 0.5, false);
-                damageEntity(target, hero.getPlayer(), (int) (getDamageFor(hero) * damageMult), EntityDamageEvent.DamageCause.CUSTOM, true);
+                damageEntity(target, hero.getPlayer(), getDamage(hero, item.getType().name()), EntityDamageEvent.DamageCause.CUSTOM, true);
                 target.getWorld().playEffect(target.getEyeLocation(), Effect.MOBSPAWNER_FLAMES, 0);
             }
 
@@ -171,9 +202,8 @@ public class SkillBoomerang extends TargettedSkill {
         @Override
         public void run() {
             if (item.getType().getMaxDurability() > 0) {
-                int durDecrease = SkillConfigManager.getUseSetting(hero, SkillBoomerang.this, "durability-decrease", 5, false);
-                item.setDurability((short) (item.getDurability() + durDecrease));
-                if (item.getDurability() >= item.getType().getMaxDurability()) { // tool was breaked
+                item.setDurability((short) (item.getDurability() + getDurabilityCost(hero)));
+                if (item.getDurability() >= item.getType().getMaxDurability()) { // tool was broken
                     return;
                 }
             }
