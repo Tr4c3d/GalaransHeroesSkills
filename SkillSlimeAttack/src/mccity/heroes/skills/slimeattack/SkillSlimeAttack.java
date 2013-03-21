@@ -9,7 +9,7 @@ import com.herocraftonline.heroes.characters.classes.HeroClass;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.characters.skill.TargettedSkill;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -52,21 +52,21 @@ public class SkillSlimeAttack extends TargettedSkill implements Listener {
                 .replace("$3", String.valueOf(chanceSmall))
                 .replace("$4", Util.stringDouble(getDespawnDelayFor(hero) / 1000.0)));
 
-        double cdSec = SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 30000, false) / 1000.0;
+        double cdSec = SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 30000, false) / 1000.0;
         if (cdSec > 0) {
             descr.append(" CD:");
             descr.append(Util.formatDouble(cdSec));
             descr.append("s");
         }
 
-        int mana = SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 30, false);
+        int mana = SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 30, false);
         if (mana > 0) {
             descr.append(" M:");
             descr.append(mana);
         }
 
-        double distance = SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE.node(), 10, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE.node(), 0.1, false) * hero.getSkillLevel(this);
+        double distance = SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE.node(), 10, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.1, false) * hero.getSkillLevel(this);
         if (distance > 0) {
             descr.append(" Dist:");
             descr.append(Util.formatDouble(distance));
@@ -77,12 +77,12 @@ public class SkillSlimeAttack extends TargettedSkill implements Listener {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.REAGENT.node(), 341);
-        defaultConfig.set(Setting.REAGENT_COST.node(), 5);
-        defaultConfig.set(Setting.MAX_DISTANCE.node(), 25);
-        defaultConfig.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.35);
-        defaultConfig.set(Setting.COOLDOWN.node(), 30000);
-        defaultConfig.set(Setting.MANA.node(), 30);
+        defaultConfig.set(SkillSetting.REAGENT.node(), 341);
+        defaultConfig.set(SkillSetting.REAGENT_COST.node(), 5);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE.node(), 25);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.35);
+        defaultConfig.set(SkillSetting.COOLDOWN.node(), 30000);
+        defaultConfig.set(SkillSetting.MANA.node(), 30);
         defaultConfig.set("base-chance-big", 0.1);
         defaultConfig.set("chance-per-level-big", 0.002);
         defaultConfig.set("base-chance-small", 0.2);

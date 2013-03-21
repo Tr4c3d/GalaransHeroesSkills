@@ -8,7 +8,7 @@ import com.herocraftonline.heroes.characters.skill.ActiveSkill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.util.Messaging;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
@@ -39,10 +39,10 @@ public class SkillScent extends ActiveSkill {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.COOLDOWN.node(), 60000);
-        defaultConfig.set(Setting.MANA.node(), 50);
-        defaultConfig.set(Setting.MAX_DISTANCE.node(), 30);
-        defaultConfig.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.4);
+        defaultConfig.set(SkillSetting.COOLDOWN.node(), 60000);
+        defaultConfig.set(SkillSetting.MANA.node(), 50);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE.node(), 30);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.4);
         defaultConfig.set("detect-invis", true);
         defaultConfig.set("detect-sneak", true);
         defaultConfig.set("detect-vanish", false);
@@ -56,14 +56,14 @@ public class SkillScent extends ActiveSkill {
     public String getDescription(Hero hero) {
         StringBuilder descr = new StringBuilder(getDescription());
 
-        double cdSec = SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 60000, false) / 1000.0;
+        double cdSec = SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 60000, false) / 1000.0;
         if (cdSec > 0) {
             descr.append(" CD:");
             descr.append(Util.formatDouble(cdSec));
             descr.append("s");
         }
 
-        int mana = SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 50, false);
+        int mana = SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 50, false);
         if (mana > 0) {
             descr.append(" M:");
             descr.append(mana);
@@ -79,8 +79,8 @@ public class SkillScent extends ActiveSkill {
     }
 
     public double getDetectRadiusFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE.node(), 30, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE.node(), 0.4, false) * hero.getSkillLevel(this);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE.node(), 30, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.4, false) * hero.getSkillLevel(this);
     }
 
     public boolean isDetectFor(Hero hero, String key) {

@@ -1,6 +1,6 @@
 ﻿Put following jars to this directory:
 
-- CraftBukkit
+- Libigot
 - Heroes
 - DisguiseCraft
 - Factions

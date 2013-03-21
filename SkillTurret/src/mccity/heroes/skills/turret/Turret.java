@@ -306,7 +306,7 @@ public class Turret {
         float pitch = (float) (-(Math.atan2(vecY, vecXZ) * 180.0 / Math.PI));
         
         Location arrowLoc = loc.clone();
-        // Bukkit bug, actually Yaw and Pitch swapped in spawnArrow()! v1.4.6-R0.1
+        // CraftBukkit bug, actually Yaw and Pitch swapped in spawnArrow()! 21.03.2013
         arrowLoc.setPitch(yaw);
         arrowLoc.setYaw(pitch);
         

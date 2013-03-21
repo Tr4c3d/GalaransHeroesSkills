@@ -7,7 +7,7 @@ import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.characters.skill.TargettedSkill;
 import com.herocraftonline.heroes.util.Messaging;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -57,9 +57,9 @@ public class SkillTrick extends TargettedSkill implements Listener {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.COOLDOWN.node(), 45000);
-        defaultConfig.set(Setting.MANA.node(), 30);
-        defaultConfig.set(Setting.MAX_DISTANCE.node(), 5);
+        defaultConfig.set(SkillSetting.COOLDOWN.node(), 45000);
+        defaultConfig.set(SkillSetting.MANA.node(), 30);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE.node(), 5);
         defaultConfig.set("chance-base", 0.3);
         defaultConfig.set("chance-per-level", 0.005);
         defaultConfig.set("mob-chance-base", 0.4);
@@ -94,20 +94,20 @@ public class SkillTrick extends TargettedSkill implements Listener {
         descr.append('%');
         descr.append(ChatColor.YELLOW);
 
-        double cdSec = SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 45000, false) / 1000.0;
+        double cdSec = SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 45000, false) / 1000.0;
         if (cdSec > 0) {
             descr.append(" CD:");
             descr.append(Util.formatDouble(cdSec));
             descr.append("s");
         }
 
-        int mana = SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 30, false);
+        int mana = SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 30, false);
         if (mana > 0) {
             descr.append(" M:");
             descr.append(mana);
         }
 
-        double distance = SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE.node(), 5, false);
+        double distance = SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE.node(), 5, false);
         if (distance > 0) {
             descr.append(" Dist:");
             descr.append(Util.formatDouble(distance));

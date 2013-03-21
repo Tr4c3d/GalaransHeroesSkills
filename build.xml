@@ -3,8 +3,9 @@
     <property name="dir.build" value="bin"/>
     <property name="dir.dist" value="dist"/>
     <property name="dir.lib" value="lib"/>
-    <property name="ant-contrib.jar" value="ant-contrib-1.0b3.jar"/>
+    <property name="deploy.path" value="C:/Users/Galaran/Desktop/McServer/plugins/Heroes/skills"/>
 
+    <property name="ant-contrib.jar" value="ant-contrib-1.0b3.jar"/>
     <taskdef resource="net/sf/antcontrib/antlib.xml">
         <classpath>
             <pathelement location="${ant-contrib.jar}"/>
@@ -54,8 +55,6 @@
         </jar>
     </target>
 
-
-    <property name="deploy.path" value="C:/Users/Galaran/Desktop/McServer/plugins/Heroes/skills"/>
     <target name="deploy" depends="build-all">
         <copy todir="${deploy.path}">
             <fileset dir="${dir.dist}"/>

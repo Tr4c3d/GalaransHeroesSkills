@@ -11,7 +11,7 @@ import com.herocraftonline.heroes.characters.skill.Skill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.util.Messaging;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import me.galaran.bukkitutils.BlockLocation;
 import org.bukkit.Bukkit;
@@ -59,8 +59,8 @@ public class SkillPoisonedGrass extends ActiveSkill implements Listener {
         super.init();
         trapPlacedText = SkillConfigManager.getRaw(this, "trap-placed-text", "$1 blocks poisoned");
         trapPlacingFailedText = SkillConfigManager.getRaw(this, "place-fail-text", "No plants to poison");
-        applyText = SkillConfigManager.getRaw(this, Setting.APPLY_TEXT, "$1 have been poisoned by plant!");
-        expireText = SkillConfigManager.getRaw(this, Setting.EXPIRE_TEXT, "Poison expired");
+        applyText = SkillConfigManager.getRaw(this, SkillSetting.APPLY_TEXT, "$1 have been poisoned by plant!");
+        expireText = SkillConfigManager.getRaw(this, SkillSetting.EXPIRE_TEXT, "Poison expired");
     }
 
     public String getDescription(Hero hero) {
@@ -81,14 +81,14 @@ public class SkillPoisonedGrass extends ActiveSkill implements Listener {
         descr.append(" Max Distance:");
         descr.append(Util.formatDouble(getMaxDistanceFor(hero)));
 
-        double cdSec = SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 10000, false) / 1000.0;
+        double cdSec = SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 10000, false) / 1000.0;
         if (cdSec > 0) {
             descr.append(" CD:");
             descr.append(Util.formatDouble(cdSec));
             descr.append("s");
         }
 
-        int mana = SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 10, false);
+        int mana = SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 10, false);
         if (mana > 0) {
             descr.append(" M:");
             descr.append(mana);
@@ -99,53 +99,53 @@ public class SkillPoisonedGrass extends ActiveSkill implements Listener {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.REAGENT.node(), Material.SPIDER_EYE.getId());
-        defaultConfig.set(Setting.REAGENT_COST.node(), 1);
-        defaultConfig.set(Setting.COOLDOWN.node(), 10000);
-        defaultConfig.set(Setting.MANA.node(), 10);
-        defaultConfig.set(Setting.MAX_DISTANCE.node(), 10.0);
-        defaultConfig.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.12);
+        defaultConfig.set(SkillSetting.REAGENT.node(), Material.SPIDER_EYE.getId());
+        defaultConfig.set(SkillSetting.REAGENT_COST.node(), 1);
+        defaultConfig.set(SkillSetting.COOLDOWN.node(), 10000);
+        defaultConfig.set(SkillSetting.MANA.node(), 10);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE.node(), 10.0);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.12);
 
-        defaultConfig.set(Setting.RADIUS.node(), 1.0);
-        defaultConfig.set(Setting.RADIUS_INCREASE.node(), 0.03);
+        defaultConfig.set(SkillSetting.RADIUS.node(), 1.0);
+        defaultConfig.set(SkillSetting.RADIUS_INCREASE.node(), 0.03);
 
-        defaultConfig.set(Setting.DURATION.node(), 6000);
-        defaultConfig.set(Setting.DURATION_INCREASE.node(), 80);
-        defaultConfig.set(Setting.PERIOD.node(), 2000);
-        defaultConfig.set(Setting.DAMAGE_TICK.node(), 4.0);
-        defaultConfig.set(Setting.DAMAGE_INCREASE.node(), 0.08);
+        defaultConfig.set(SkillSetting.DURATION.node(), 6000);
+        defaultConfig.set(SkillSetting.DURATION_INCREASE.node(), 80);
+        defaultConfig.set(SkillSetting.PERIOD.node(), 2000);
+        defaultConfig.set(SkillSetting.DAMAGE_TICK.node(), 4.0);
+        defaultConfig.set(SkillSetting.DAMAGE_INCREASE.node(), 0.08);
         defaultConfig.set("dispellable", true);
 
         defaultConfig.set("trap-placed-text", "$1 blocks poisoned");
         defaultConfig.set("place-fail-text", "No plants to poison");
-        defaultConfig.set(Setting.APPLY_TEXT.node(), "$1 have been poisoned by plant!");
-        defaultConfig.set(Setting.EXPIRE_TEXT.node(), "Poison expired");
+        defaultConfig.set(SkillSetting.APPLY_TEXT.node(), "$1 have been poisoned by plant!");
+        defaultConfig.set(SkillSetting.EXPIRE_TEXT.node(), "Poison expired");
         return defaultConfig;
     }
 
     public double getMaxDistanceFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE, 10.0, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE, 0.12, false) * hero.getSkillLevel(this);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE, 10.0, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE_INCREASE, 0.12, false) * hero.getSkillLevel(this);
     }
 
     public int getRadiusFor(Hero hero) {
-        double radius = SkillConfigManager.getUseSetting(hero, this, Setting.RADIUS, 1.0, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.RADIUS_INCREASE, 0.03, false) * hero.getSkillLevel(this);
+        double radius = SkillConfigManager.getUseSetting(hero, this, SkillSetting.RADIUS, 1.0, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.RADIUS_INCREASE, 0.03, false) * hero.getSkillLevel(this);
         return (int) Math.floor(Math.max(0.0, Math.min(radius, 4.0)));
     }
 
     public int getDurationFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.DURATION, 6000, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.DURATION_INCREASE, 80, false) * hero.getSkillLevel(this);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.DURATION, 6000, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.DURATION_INCREASE, 80, false) * hero.getSkillLevel(this);
     }
     
     public int getPeriodFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.PERIOD, 2000, false);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.PERIOD, 2000, false);
     }
 
     public int getTickDamageFor(Hero hero) {
-        return (int) (SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE_TICK, 4.0, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE_INCREASE, 0.08, false) * hero.getSkillLevel(this));
+        return (int) (SkillConfigManager.getUseSetting(hero, this, SkillSetting.DAMAGE_TICK, 4.0, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.DAMAGE_INCREASE, 0.08, false) * hero.getSkillLevel(this));
     }
 
     public boolean isDispellableFor(Hero hero) {

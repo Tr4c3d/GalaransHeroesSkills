@@ -13,7 +13,7 @@ import com.herocraftonline.heroes.characters.skill.Skill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.util.Messaging;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -60,8 +60,8 @@ public class SkillWolfForm extends ActiveSkill implements Listener {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.DURATION.node(), 8000);
-        defaultConfig.set(Setting.DURATION_INCREASE.node(), 100);
+        defaultConfig.set(SkillSetting.DURATION.node(), 8000);
+        defaultConfig.set(SkillSetting.DURATION_INCREASE.node(), 100);
         defaultConfig.set("damage-multiplier-base", 1.0);
         defaultConfig.set("damage-multiplier-per-level", 0.0);
         defaultConfig.set("damage-multiplier-unarmed-base", 3.0);
@@ -70,8 +70,8 @@ public class SkillWolfForm extends ActiveSkill implements Listener {
         defaultConfig.set("restrict-skill-use", false);
         defaultConfig.set("allowed-skills", Collections.<String>emptyList());
 
-        defaultConfig.set(Setting.APPLY_TEXT.node(), "You gain wolf power!");
-        defaultConfig.set(Setting.EXPIRE_TEXT.node(), "WolfForm expires");
+        defaultConfig.set(SkillSetting.APPLY_TEXT.node(), "You gain wolf power!");
+        defaultConfig.set(SkillSetting.EXPIRE_TEXT.node(), "WolfForm expires");
         defaultConfig.set("fail-not-normal-form-text", "Unable to use when transformed");
         defaultConfig.set("fail-skill-not-allowed-in-wolfform-text", "Unable to use this skill in Wolf Form");
         return defaultConfig;
@@ -80,8 +80,8 @@ public class SkillWolfForm extends ActiveSkill implements Listener {
     @Override
     public void init() {
         super.init();
-        applyText = SkillConfigManager.getRaw(this, Setting.APPLY_TEXT, "You gain wolf power!");
-        expireText = SkillConfigManager.getRaw(this, Setting.EXPIRE_TEXT, "WolfForm expires");
+        applyText = SkillConfigManager.getRaw(this, SkillSetting.APPLY_TEXT, "You gain wolf power!");
+        expireText = SkillConfigManager.getRaw(this, SkillSetting.EXPIRE_TEXT, "WolfForm expires");
         failNotInNormalFormText = SkillConfigManager.getRaw(this, "fail-not-normal-form-text", "Unable to use when transformed");
         failSkillNotAllowedInWolfFormText = SkillConfigManager.getRaw(this, "fail-skill-not-allowed-in-wolfform-text",
                 "Unable to use this skill in Wolf Form");
@@ -129,18 +129,18 @@ public class SkillWolfForm extends ActiveSkill implements Listener {
     }
 
     public int getCooldown(Hero hero) {
-        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
     }
 
     public int getMana(Hero hero) {
-        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.MANA_REDUCE, 0, false) * hero.getSkillLevel(this));
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA_REDUCE, 0, false) * hero.getSkillLevel(this));
     }
 
     public int getDurationFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.DURATION, 8000, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.DURATION_INCREASE, 100, false) * hero.getSkillLevel(this);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.DURATION, 8000, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.DURATION_INCREASE, 100, false) * hero.getSkillLevel(this);
     }
 
     public double getDamageMultiplierFor(Hero hero, boolean unarmed) {

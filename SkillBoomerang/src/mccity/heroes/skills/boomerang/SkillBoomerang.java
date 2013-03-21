@@ -4,10 +4,10 @@ import com.herocraftonline.heroes.Heroes;
 import com.herocraftonline.heroes.api.SkillResult;
 import com.herocraftonline.heroes.characters.Hero;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.characters.skill.TargettedSkill;
 import com.herocraftonline.heroes.util.Messaging;
-import com.herocraftonline.heroes.util.Setting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -53,12 +53,12 @@ public class SkillBoomerang extends TargettedSkill {
         
         defaultConfig.set("catch-chance-base", 0.4);
         defaultConfig.set("catch-chance-per-level", 0.01);
-        defaultConfig.set(Setting.DAMAGE.node(), 10);
-        defaultConfig.set(Setting.DAMAGE_INCREASE.node(), 0.1);
-        defaultConfig.set(Setting.MAX_DISTANCE.node(), 20);
-        defaultConfig.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.2);
-        defaultConfig.set(Setting.COOLDOWN.node(), 10000);
-        defaultConfig.set(Setting.MANA.node(), 5);
+        defaultConfig.set(SkillSetting.DAMAGE.node(), 10);
+        defaultConfig.set(SkillSetting.DAMAGE_INCREASE.node(), 0.1);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE.node(), 20);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.2);
+        defaultConfig.set(SkillSetting.COOLDOWN.node(), 10000);
+        defaultConfig.set(SkillSetting.MANA.node(), 5);
         defaultConfig.set("durability-decrease", 5);
         
         defaultConfig.set("unable-to-throw-text", UNABLE_TO_THROW_TEXT_DEFAULT);
@@ -111,18 +111,18 @@ public class SkillBoomerang extends TargettedSkill {
     }
 
     public int getCooldown(Hero hero) {
-        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
     }
 
     public int getMana(Hero hero) {
-        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0.0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
+        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 0.0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
     }
 
     private double getMaxDistanceFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE, 20, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE, 0.2, false) * hero.getSkillLevel(this);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE, 20, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE_INCREASE, 0.2, false) * hero.getSkillLevel(this);
     }
 
     private double getCatchChanceFor(Hero hero) {
@@ -135,8 +135,8 @@ public class SkillBoomerang extends TargettedSkill {
     }
 
     private double getDamageBase(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE, 10, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE_INCREASE, 0.1, false) * hero.getSkillLevel(this);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.DAMAGE, 10, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.DAMAGE_INCREASE, 0.1, false) * hero.getSkillLevel(this);
     }
     
     private int getDamage(Hero hero, String matName) {

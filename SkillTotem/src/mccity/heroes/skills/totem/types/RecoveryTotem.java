@@ -7,6 +7,7 @@ import mccity.heroes.skills.totem.Totem;
 import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
 public class RecoveryTotem extends Totem {
 
@@ -47,18 +48,15 @@ public class RecoveryTotem extends Totem {
     }
 
     public int heal(Hero hero) {
-        int amount = Math.min(hero.getMaxHealth() - hero.getHealth(), healAmount);
+        Player player = hero.getPlayer();
+        int amount = Math.min(player.getMaxHealth() - player.getHealth(), healAmount);
         if (amount > 0) {
-            HeroRegainHealthEvent healEvent = new HeroRegainHealthEvent(hero, amount, getSkill());
-            Bukkit.getPluginManager().callEvent(healEvent);
-            if (healEvent.isCancelled()) {
-                return 0;
-            } else {
-                hero.setHealth(hero.getHealth() + amount);
-                hero.syncHealth();
-                return amount;
+            HeroRegainHealthEvent hrh = new HeroRegainHealthEvent(hero, amount, getSkill());
+            Bukkit.getPluginManager().callEvent(hrh);
+            if (!hrh.isCancelled()) {
+                hero.heal(hrh.getAmount());
             }
         }
-        return 0;
+        return amount;
     }
 }

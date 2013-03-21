@@ -12,7 +12,7 @@ import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.characters.skill.TargettedSkill;
 import com.herocraftonline.heroes.util.Messaging;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -95,12 +95,12 @@ public class SkillTransform extends TargettedSkill implements Listener {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection node = super.getDefaultConfig();
-        node.set(Setting.REAGENT.node(), Material.EYE_OF_ENDER.getId());
-        node.set(Setting.REAGENT_COST.node(), 0);
-        node.set(Setting.MAX_DISTANCE.node(), 10.0);
-        node.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.1);
-        node.set(Setting.DURATION.node(), 90000);
-        node.set(Setting.DURATION_INCREASE.node(), 2000);
+        node.set(SkillSetting.REAGENT.node(), Material.EYE_OF_ENDER.getId());
+        node.set(SkillSetting.REAGENT_COST.node(), 0);
+        node.set(SkillSetting.MAX_DISTANCE.node(), 10.0);
+        node.set(SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.1);
+        node.set(SkillSetting.DURATION.node(), 90000);
+        node.set(SkillSetting.DURATION_INCREASE.node(), 2000);
         node.set("disabled-skills", Collections.emptyList());
 
         node.set("level-requirements." + DisguiseType.Player, 1);
@@ -114,8 +114,8 @@ public class SkillTransform extends TargettedSkill implements Listener {
 
         node.set("low-level-text", LOW_LEVEL_TEXT_DEFAULT);
         node.set("skill-disabled-text", SKILL_DISABLED_TEXT_DEFAULT);
-        node.set(Setting.APPLY_TEXT.node(), APPLY_TEXT_DEFAULT);
-        node.set(Setting.EXPIRE_TEXT.node(), EXPIRE_TEXT_DEFAULT);
+        node.set(SkillSetting.APPLY_TEXT.node(), APPLY_TEXT_DEFAULT);
+        node.set(SkillSetting.EXPIRE_TEXT.node(), EXPIRE_TEXT_DEFAULT);
         return node;
     }
 
@@ -124,9 +124,9 @@ public class SkillTransform extends TargettedSkill implements Listener {
         lowLevelText = SkillConfigManager.getRaw(this, "low-level-text", LOW_LEVEL_TEXT_DEFAULT)
                 .replace("%level%", "$1").replace("%creature%", "$2");
         skillDisabledText = SkillConfigManager.getRaw(this, "skill-disabled-text", SKILL_DISABLED_TEXT_DEFAULT);
-        applyText = SkillConfigManager.getRaw(this, Setting.APPLY_TEXT, APPLY_TEXT_DEFAULT)
+        applyText = SkillConfigManager.getRaw(this, SkillSetting.APPLY_TEXT, APPLY_TEXT_DEFAULT)
                 .replace("%creature%", "$1");
-        expireText = SkillConfigManager.getRaw(this, Setting.EXPIRE_TEXT, EXPIRE_TEXT_DEFAULT);
+        expireText = SkillConfigManager.getRaw(this, SkillSetting.EXPIRE_TEXT, EXPIRE_TEXT_DEFAULT);
     }
 
     @Override
@@ -186,23 +186,23 @@ public class SkillTransform extends TargettedSkill implements Listener {
     }
 
     public int getMaxDistance(Hero hero) {
-        return (int) (SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE, 10.0, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE, 0.1, false) * hero.getSkillLevel(this));
+        return (int) (SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE, 10.0, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE_INCREASE, 0.1, false) * hero.getSkillLevel(this));
     }
 
     public int getDuration(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.DURATION, 90000, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.DURATION_INCREASE, 2000, false) * hero.getSkillLevel(this);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.DURATION, 90000, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.DURATION_INCREASE, 2000, false) * hero.getSkillLevel(this);
     }
 
     public int getCooldown(Hero hero) {
-        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
     }
 
     public int getMana(Hero hero) {
-        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0.0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
+        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 0.0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
     }
 
     public SkillResult use(Hero hero, LivingEntity target, String args[]) {

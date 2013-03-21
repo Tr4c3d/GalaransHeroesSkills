@@ -7,7 +7,7 @@ import com.herocraftonline.heroes.characters.skill.PassiveSkill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.util.Messaging;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import mccity.heroes.skills.turret.integration.PluginsIntegration;
 import org.bukkit.Bukkit;
@@ -70,8 +70,8 @@ public class SkillTurret extends PassiveSkill {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.COOLDOWN.node(), 45000);
-        defaultConfig.set(Setting.MANA.node(), 0);
+        defaultConfig.set(SkillSetting.COOLDOWN.node(), 45000);
+        defaultConfig.set(SkillSetting.MANA.node(), 0);
         defaultConfig.set("max-turrets-per-player", 3);
         defaultConfig.set("replace-oldest-on-limit", false);
 
@@ -133,7 +133,7 @@ public class SkillTurret extends PassiveSkill {
             sb.append("s");
         }
 
-        double cdSec = SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 45000, false) / 1000.0;
+        double cdSec = SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 45000, false) / 1000.0;
         if (cdSec > 0) {
             sb.append(" CD:");
             sb.append(Util.formatDouble(cdSec));
@@ -176,7 +176,7 @@ public class SkillTurret extends PassiveSkill {
     }
 
     public int getManaCostFor(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0, false);
+        return SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 0, false);
     }
 
     public boolean isLifetimeProtectedFor(Hero hero) {
@@ -201,7 +201,7 @@ public class SkillTurret extends PassiveSkill {
                     if (mana >= reqMana) {
                         if (turretManager.addFor(hero, block)) {
                             broadcast(block.getLocation(), Messages.turretPlacedBy, event.getPlayer().getName());
-                            long cooldown = SkillConfigManager.getUseSetting(hero, SkillTurret.this, Setting.COOLDOWN.node(), 30000, false);
+                            long cooldown = SkillConfigManager.getUseSetting(hero, SkillTurret.this, SkillSetting.COOLDOWN.node(), 30000, false);
                             hero.setCooldown("Turret", System.currentTimeMillis() + cooldown);
                             hero.setMana(mana - reqMana);
                         }

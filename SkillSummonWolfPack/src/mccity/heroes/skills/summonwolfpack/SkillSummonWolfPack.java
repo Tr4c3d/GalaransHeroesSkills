@@ -6,7 +6,7 @@ import com.herocraftonline.heroes.characters.Hero;
 import com.herocraftonline.heroes.characters.skill.ActiveSkill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -30,10 +30,10 @@ public class SkillSummonWolfPack extends ActiveSkill {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.MAX_DISTANCE.node(), 5.0);
-        defaultConfig.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.1);
-        defaultConfig.set(Setting.REAGENT.node(), 352);
-        defaultConfig.set(Setting.REAGENT_COST.node(), 0);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE.node(), 5.0);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.1);
+        defaultConfig.set(SkillSetting.REAGENT.node(), 352);
+        defaultConfig.set(SkillSetting.REAGENT_COST.node(), 0);
         defaultConfig.set("base-chance-2x", 0.75);
         defaultConfig.set("chance-2x-per-level", 0.0);
         defaultConfig.set("base-chance-3x", 0.5);
@@ -67,18 +67,18 @@ public class SkillSummonWolfPack extends ActiveSkill {
     }
 
     public int getMaxDistance(Hero hero) {
-        return (int) (SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE, 5.0, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE, 0.1, false) * hero.getSkillLevel(this));
+        return (int) (SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE, 5.0, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE_INCREASE, 0.1, false) * hero.getSkillLevel(this));
     }
 
     public int getCooldown(Hero hero) {
-        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
     }
 
     public int getMana(Hero hero) {
-        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0.0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
+        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 0.0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
     }
 
     public double getChance(Hero hero, int count) {

@@ -7,7 +7,7 @@ import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
 import com.herocraftonline.heroes.characters.skill.TargettedSkill;
 import com.herocraftonline.heroes.util.Messaging;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -48,12 +48,12 @@ public class SkillRockslide extends TargettedSkill implements Listener {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection defaultConfig = super.getDefaultConfig();
-        defaultConfig.set(Setting.COOLDOWN.node(), 30000);
-        defaultConfig.set(Setting.MANA.node(), 30);
-        defaultConfig.set(Setting.MAX_DISTANCE.node(), 10);
-        defaultConfig.set(Setting.MAX_DISTANCE_INCREASE.node(), 0.1);
-        defaultConfig.set(Setting.DURATION.node(), 2000);
-        defaultConfig.set(Setting.DURATION_INCREASE.node(), 60);
+        defaultConfig.set(SkillSetting.COOLDOWN.node(), 30000);
+        defaultConfig.set(SkillSetting.MANA.node(), 30);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE.node(), 10);
+        defaultConfig.set(SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.1);
+        defaultConfig.set(SkillSetting.DURATION.node(), 2000);
+        defaultConfig.set(SkillSetting.DURATION_INCREASE.node(), 60);
         defaultConfig.set("radius", 2);
         defaultConfig.set("height", 3);
         defaultConfig.set("check-area-protection", true);
@@ -64,21 +64,21 @@ public class SkillRockslide extends TargettedSkill implements Listener {
     public String getDescription(Hero hero) {
         StringBuilder descr = new StringBuilder(getDescription());
 
-        double cdSec = SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 30000, false) / 1000.0;
+        double cdSec = SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 30000, false) / 1000.0;
         if (cdSec > 0) {
             descr.append(" CD:");
             descr.append(Util.formatDouble(cdSec));
             descr.append("s");
         }
 
-        int mana = SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 30, false);
+        int mana = SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 30, false);
         if (mana > 0) {
             descr.append(" M:");
             descr.append(mana);
         }
 
-        double distance = SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE.node(), 10, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.MAX_DISTANCE_INCREASE.node(), 0.1, false) * hero.getSkillLevel(this);
+        double distance = SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE.node(), 10, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MAX_DISTANCE_INCREASE.node(), 0.1, false) * hero.getSkillLevel(this);
         if (distance > 0) {
             descr.append(" Dist:");
             descr.append(Util.formatDouble(distance));
@@ -128,8 +128,8 @@ public class SkillRockslide extends TargettedSkill implements Listener {
         rockslide.launch();
 
         // schedule rollback
-        int durationMs = SkillConfigManager.getUseSetting(hero, this, Setting.DURATION.node(), 2000, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.DURATION_INCREASE.node(), 60, false) * hero.getSkillLevel(this);
+        int durationMs = SkillConfigManager.getUseSetting(hero, this, SkillSetting.DURATION.node(), 2000, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.DURATION_INCREASE.node(), 60, false) * hero.getSkillLevel(this);
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, rockslide, durationMs / 50);
 
         return SkillResult.NORMAL;

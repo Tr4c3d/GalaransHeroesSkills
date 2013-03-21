@@ -28,7 +28,7 @@ public class SlowdownTotemBuilder extends TotemBuilder {
 
     @Override
     protected String getShortDescription() {
-        return "Slows your enemies in totem radius";
+        return "Slow down enemies";
     }
 
     @Override

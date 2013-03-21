@@ -2,7 +2,7 @@ package mccity.heroes.skills.totem.types;
 
 import com.herocraftonline.heroes.characters.Hero;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import mccity.heroes.skills.totem.Totem;
 import mccity.heroes.skills.totem.TotemBuilder;
 import org.bukkit.Material;

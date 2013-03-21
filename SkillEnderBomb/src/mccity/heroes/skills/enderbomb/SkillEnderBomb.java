@@ -7,7 +7,7 @@ import com.herocraftonline.heroes.characters.party.HeroParty;
 import com.herocraftonline.heroes.characters.skill.ActiveSkill;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
 import com.herocraftonline.heroes.characters.skill.SkillType;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -43,10 +43,10 @@ public class SkillEnderBomb extends ActiveSkill {
 
     public ConfigurationSection getDefaultConfig() {
         ConfigurationSection node = super.getDefaultConfig();
-        node.set(Setting.REAGENT.node(), Material.ENDER_PEARL.getId());
-        node.set(Setting.REAGENT_COST.node(), 1);
-        node.set(Setting.DAMAGE.node(), 15.0);
-        node.set(Setting.DAMAGE_INCREASE.node(), 0.3);
+        node.set(SkillSetting.REAGENT.node(), Material.ENDER_PEARL.getId());
+        node.set(SkillSetting.REAGENT_COST.node(), 1);
+        node.set(SkillSetting.DAMAGE.node(), 15.0);
+        node.set(SkillSetting.DAMAGE_INCREASE.node(), 0.3);
         node.set("explosion-radius", 3.0);
         node.set("fire", false);
         node.set("prevent-wilderness-block-damage-and-fire", true);
@@ -82,8 +82,8 @@ public class SkillEnderBomb extends ActiveSkill {
     }
 
     public int getDamage(Hero hero) {
-        return (int) (SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE, 15.0, false) +
-                SkillConfigManager.getUseSetting(hero, this, Setting.DAMAGE_INCREASE, 0.3, false) * hero.getSkillLevel(this));
+        return (int) (SkillConfigManager.getUseSetting(hero, this, SkillSetting.DAMAGE, 15.0, false) +
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.DAMAGE_INCREASE, 0.3, false) * hero.getSkillLevel(this));
     }
 
     public float getExplosionRadius(Hero hero) {
@@ -103,13 +103,13 @@ public class SkillEnderBomb extends ActiveSkill {
     }
 
     public int getCooldown(Hero hero) {
-        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN, 0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN, 0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.COOLDOWN_REDUCE, 0, false) * hero.getSkillLevel(this));
     }
 
     public int getMana(Hero hero) {
-        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, Setting.MANA, 0.0, true) -
-                SkillConfigManager.getUseSetting(hero, this, Setting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
+        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA, 0.0, true) -
+                SkillConfigManager.getUseSetting(hero, this, SkillSetting.MANA_REDUCE, 0.0, false) * hero.getSkillLevel(this));
     }
 
     public SkillResult use(Hero hero, String[] args) {

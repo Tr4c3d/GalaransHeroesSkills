@@ -2,7 +2,7 @@ package mccity.heroes.skills.totem;
 
 import com.herocraftonline.heroes.characters.Hero;
 import com.herocraftonline.heroes.characters.skill.SkillConfigManager;
-import com.herocraftonline.heroes.util.Setting;
+import com.herocraftonline.heroes.characters.skill.SkillSetting;
 import com.herocraftonline.heroes.util.Util;
 import me.galaran.bukkitutils.skilltotem.GUtils;
 import org.bukkit.ChatColor;
@@ -37,12 +37,12 @@ public abstract class TotemBuilder {
     public final Map<String, ?> getDefaultConfig() {
         Map<String, Object> defaults = new LinkedHashMap<String, Object>();
         defaults.put("can-use", true);
-        defaults.put(Setting.COOLDOWN.node(), 60000);
-        defaults.put(Setting.COOLDOWN_REDUCE.node(), 600);
-        defaults.put(Setting.RADIUS.node(), 7.0);
-        defaults.put(Setting.RADIUS_INCREASE.node(), 0.16);
-        defaults.put(Setting.MANA.node(), 50.0);
-        defaults.put(Setting.MANA_REDUCE.node(), 0.5);
+        defaults.put(SkillSetting.COOLDOWN.node(), 60000);
+        defaults.put(SkillSetting.COOLDOWN_REDUCE.node(), 600);
+        defaults.put(SkillSetting.RADIUS.node(), 7.0);
+        defaults.put(SkillSetting.RADIUS_INCREASE.node(), 0.16);
+        defaults.put(SkillSetting.MANA.node(), 50.0);
+        defaults.put(SkillSetting.MANA_REDUCE.node(), 0.5);
         defaults.put("lifetime", 60000);
         defaults.put("lifetime-increase", 1000);
         defaults.put("protection", true);
@@ -110,7 +110,7 @@ public abstract class TotemBuilder {
         return getName() + "." + key;
     }
 
-    protected final String subkey(Setting setting) {
+    protected final String subkey(SkillSetting setting) {
         return subkey(setting.node());
     }
 
@@ -119,13 +119,13 @@ public abstract class TotemBuilder {
     }
 
     int getManaCost(Hero hero) {
-        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, skill, subkey(Setting.MANA), 50.0, false) -
-                SkillConfigManager.getUseSetting(hero, skill, subkey(Setting.MANA_REDUCE), 0.5, false) * hero.getSkillLevel(skill));
+        return (int) Math.max(0.0, SkillConfigManager.getUseSetting(hero, skill, subkey(SkillSetting.MANA), 50.0, false) -
+                SkillConfigManager.getUseSetting(hero, skill, subkey(SkillSetting.MANA_REDUCE), 0.5, false) * hero.getSkillLevel(skill));
     }
 
     int getCooldown(Hero hero) {
-        return Math.max(0, SkillConfigManager.getUseSetting(hero, skill, subkey(Setting.COOLDOWN), 60000, false) -
-                SkillConfigManager.getUseSetting(hero, skill, subkey(Setting.COOLDOWN_REDUCE), 600, false) * hero.getSkillLevel(skill));
+        return Math.max(0, SkillConfigManager.getUseSetting(hero, skill, subkey(SkillSetting.COOLDOWN), 60000, false) -
+                SkillConfigManager.getUseSetting(hero, skill, subkey(SkillSetting.COOLDOWN_REDUCE), 600, false) * hero.getSkillLevel(skill));
     }
 
     boolean isProtected(Hero hero) {
@@ -133,8 +133,8 @@ public abstract class TotemBuilder {
     }
 
     private double getRadius(Hero hero) {
-        return SkillConfigManager.getUseSetting(hero, skill, subkey(Setting.RADIUS), 7.0, false) +
-                SkillConfigManager.getUseSetting(hero, skill, subkey(Setting.RADIUS_INCREASE), 0.16, false) * hero.getSkillLevel(skill);
+        return SkillConfigManager.getUseSetting(hero, skill, subkey(SkillSetting.RADIUS), 7.0, false) +
+                SkillConfigManager.getUseSetting(hero, skill, subkey(SkillSetting.RADIUS_INCREASE), 0.16, false) * hero.getSkillLevel(skill);
     }
 
     private int getTickInterval(Hero hero) {
